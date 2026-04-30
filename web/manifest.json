@@ -1,0 +1,17 @@
+{
+  "name":         "AuraFlow Water Flow Monitor",
+  "version":      "0.1.0",
+  "home_assistant_domain": "auraflow",
+  "funding_url":  "",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        { "path": "bin/bootloader.bin", "offset": 4096 },
+        { "path": "bin/partitions.bin", "offset": 32768 },
+        { "path": "bin/firmware.bin",   "offset": 65536 }
+      ]
+    }
+  ]
+}

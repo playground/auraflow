@@ -1,0 +1,2 @@
+# Built firmware binaries go here. See ../README.md for how to populate them.
+# The .bin files themselves are gitignored (per-machine output of `mcconfig`).

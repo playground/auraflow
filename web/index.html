@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AuraFlow — Flash your sensor</title>
+  <script type="module"
+          src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <style>
+    :root {
+      --bg:        #0b0e13;
+      --surface:   #161b25;
+      --border:    #2a3142;
+      --text:      #e2e8f0;
+      --muted:     #94a3b8;
+      --accent:    #3b82f6;
+      --accent-hi: #2563eb;
+      --warn:      #b45309;
+      --err:       #b91c1c;
+      --ok:        #166534;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem;
+    }
+
+    h1 { font-size: 1.6rem; margin: 0 0 0.4rem; }
+    .tagline { color: var(--muted); margin: 0 0 2rem; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .card h2 { font-size: 1.05rem; margin: 0 0 0.6rem; }
+    .card p { color: var(--muted); margin: 0.4rem 0; font-size: 0.9rem; }
+    .card ol { color: var(--muted); padding-left: 1.2rem; font-size: 0.9rem; }
+    .card ol li { margin: 0.25rem 0; }
+
+    .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 1.6rem; height: 1.6rem; border-radius: 999px;
+      background: var(--accent); color: #fff;
+      font-size: 0.8rem; font-weight: 700; margin-right: 0.5rem;
+    }
+
+    esp-web-install-button {
+      --esp-tools-button-color:           var(--accent);
+      --esp-tools-button-text-color:      #fff;
+      --esp-tools-button-border-radius:   8px;
+    }
+
+    button.flash {
+      background: var(--accent); color: #fff; border: none;
+      padding: 0.7rem 1.5rem; border-radius: 8px; font-size: 1rem; font-weight: 600;
+      cursor: pointer;
+    }
+    button.flash:hover { background: var(--accent-hi); }
+
+    pre, code {
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      font-size: 0.82rem;
+    }
+    pre {
+      background: #0a0d12; border: 1px solid var(--border);
+      border-radius: 6px; padding: 0.85rem; overflow-x: auto;
+      color: #cbd5e1;
+    }
+    code:not(pre code) {
+      background: #0a0d12; padding: 0.1rem 0.4rem;
+      border-radius: 4px; color: #cbd5e1;
+    }
+
+    .browser-warning {
+      background: rgba(180, 83, 9, 0.15);
+      border: 1px solid var(--warn);
+      border-radius: 8px; padding: 0.8rem 1rem;
+      font-size: 0.85rem;
+      margin-bottom: 1.25rem;
+      display: none;
+    }
+    .browser-warning.visible { display: block; }
+
+    a { color: var(--accent); }
+    a:hover { color: var(--accent-hi); }
+
+    .footer-note {
+      color: var(--muted); font-size: 0.78rem; margin-top: 2rem;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <h1>AuraFlow — Flash your sensor</h1>
+    <p class="tagline">
+      Browser-based ESP32 flashing for the AuraFlow water-flow leak detection sensor.
+      Uses WebSerial — no toolchain install needed.
+    </p>
+
+    <div id="browserWarning" class="browser-warning">
+      <strong>WebSerial isn't available in this browser.</strong>
+      Use a recent <a href="https://www.google.com/chrome/">Chrome</a> or
+      <a href="https://www.microsoft.com/edge">Edge</a> on a desktop OS.
+      iOS and Firefox are not supported.
+    </div>
+
+    <!-- ── Step 1: Connect ─────────────────────────────────────── -->
+    <div class="card">
+      <h2><span class="step-num">1</span>Connect the ESP32</h2>
+      <p>
+        Plug the ESP32 into your computer with a <em>data</em> USB cable
+        (not a charge-only cable — a common gotcha). Hold the
+        <code>BOOT</code> button on the board if your variant requires it
+        for flashing.
+      </p>
+    </div>
+
+    <!-- ── Step 2: Flash ───────────────────────────────────────── -->
+    <div class="card">
+      <h2><span class="step-num">2</span>Flash the firmware</h2>
+      <p>
+        Click below, select your serial port (look for
+        <code>USB Serial</code> or <code>cp210x</code>), and confirm.
+        The flash takes ~30 seconds.
+      </p>
+      <p style="margin: 1rem 0;">
+        <esp-web-install-button manifest="./manifest.json">
+          <button slot="activate" class="flash">Connect &amp; Flash</button>
+          <span slot="unsupported">
+            Browser doesn't support WebSerial — use Chrome or Edge.
+          </span>
+          <span slot="not-allowed">
+            This page must be served over HTTPS (or localhost) for WebSerial to work.
+          </span>
+        </esp-web-install-button>
+      </p>
+    </div>
+
+    <!-- ── Step 3: Provision ───────────────────────────────────── -->
+    <div class="card">
+      <h2><span class="step-num">3</span>Provision over serial</h2>
+      <p>
+        After flashing, the ESP32 reboots and prints
+        <code>auraflow: NVS not provisioned</code> until you give it
+        Wi-Fi credentials and a HomeHub URL. <strong>Provisioning is
+        currently done via the Moddable serial REPL</strong>, not from
+        this page yet — see
+        <a href="../docs/bring-up.md">bring-up.md § 3</a> for the snippet
+        to paste.
+      </p>
+      <p>
+        In short: open a serial terminal at <code>460800 8N1</code>,
+        wait for the prompt, then paste:
+      </p>
+      <pre>import Preference from 'preference';
+const D = 'auraflow';
+Preference.set(D, 'wifiSsid',       'YourSSID');
+Preference.set(D, 'wifiPassword',   'YourPassword');
+Preference.set(D, 'homehubUrl',     'http://192.168.1.10:3000');
+Preference.set(D, 'internalApiKey', 'paste-INTERNAL_API_KEY-here');
+Preference.set(D, 'sensorId',       'auraflow-mainline-01');
+Preference.set(D, 'wordOrder',      'low-word-first');</pre>
+      <p>
+        Reset the ESP32 and watch for <code>wifi: gotIP</code>.
+      </p>
+    </div>
+
+    <!-- ── Step 4: Register ────────────────────────────────────── -->
+    <div class="card">
+      <h2><span class="step-num">4</span>Register the sensor in HomeHub</h2>
+      <ol>
+        <li>Open your HomeHub dashboard (<code>http://&lt;host&gt;:4201</code>) and sign in</li>
+        <li>Navigate to <strong>Sensors</strong> → <strong>+ Add sensor</strong></li>
+        <li>Use the same <code>sensorId</code> you wrote to NVS in step 3</li>
+        <li>Within ~30 s the sensor's last-seen timestamp will tick</li>
+      </ol>
+    </div>
+
+    <p class="footer-note">
+      Source: <a href="https://github.com/foodisready/auraflow">github.com/foodisready/auraflow</a> ·
+      Phase 5 — first version: flashing only. Provisioning-over-WebSerial coming.
+    </p>
+  </main>
+
+  <script>
+    // Surface a friendly notice if WebSerial is unavailable.
+    if (!('serial' in navigator)) {
+      document.getElementById('browserWarning').classList.add('visible');
+    }
+  </script>
+</body>
+</html>

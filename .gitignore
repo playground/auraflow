@@ -8,3 +8,6 @@ xs_*/
 .env.local
 .vscode/
 .idea/
+
+# Firmware binaries are built per-machine, not committed
+web/bin/*.bin

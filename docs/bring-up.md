@@ -46,6 +46,21 @@ compiles the entire SDK and takes ~10 min. Subsequent builds are <30s.
 If `mcconfig` fails with "no such file `manifest.json`", run from the repo
 root, not from inside `src/`.
 
+### Alternative: browser-based flash via the web flasher
+
+After your first successful Moddable build (which produces the `.bin`
+files), you can flash any subsequent ESP32 from Chrome/Edge without
+running `mcconfig` again. Useful for friends/family/colleagues who you
+want to give a sensor without showing them a terminal.
+
+See [`../web/README.md`](../web/README.md). For a quick local test:
+
+```bash
+# After a build, copy the three binaries into web/bin/ as the README explains
+cd web && python3 -m http.server 8080
+# open http://localhost:8080 in Chrome — click Connect & Flash
+```
+
 ## 3. Provision via the Moddable serial REPL
 
 After flash, open the REPL:

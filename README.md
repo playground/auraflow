@@ -66,6 +66,17 @@ npm run build:firmware            # debug build
 npm run build:firmware:release    # release build
 ```
 
+## Browser-based flashing (web flasher)
+
+Once binaries have been built once with `mcconfig`, anyone can re-flash
+an ESP32 from Chrome/Edge without installing the Moddable SDK. See
+[`web/README.md`](./web/README.md) for hosting and binary distribution.
+
+```bash
+cd web && python3 -m http.server 8080
+# open http://localhost:8080 in Chrome
+```
+
 ## Provisioning a new sensor
 
 Until the Phase 5 web flasher ships, provision via the Moddable serial REPL
