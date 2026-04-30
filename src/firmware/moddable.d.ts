@@ -64,6 +64,14 @@ declare module 'sntp' {
   }
 }
 
+/**
+ * ESP32 platform module — provides `Restart()` for soft reboot from JS.
+ * Available in Moddable's ESP32 builds; absent on host-side tests.
+ */
+declare module 'esp32' {
+  export function Restart(): void;
+}
+
 declare const trace: (msg: string) => void;
 
 /** Moddable's fetch (subset). Available in newer SDK builds. */

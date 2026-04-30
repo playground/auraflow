@@ -28,8 +28,10 @@ const FLOWING_THRESHOLD_M3H = 0.006;   // matches HomeHub default; cadence switc
 // ── Boot ──────────────────────────────────────────────────────
 const cfg = loadConfig();
 if (!isProvisioned(cfg)) {
-  trace('auraflow: NVS not provisioned. Run provisioning script over serial.\n');
-  // Phase 5: launch AP captive portal here.
+  trace('auraflow: NVS not provisioned — listening on UART0 for PROVISION:{...}\n');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { startProvisioningListener } = require('./provisioning');
+  startProvisioningListener();
 } else {
   startMain(cfg);
 }

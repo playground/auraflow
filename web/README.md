@@ -10,11 +10,18 @@ toolchain install — they just need a USB cable and the URL to this page.
 |---|---|
 | Flash bootloader + partitions + firmware to a connected ESP32 | ✓ |
 | Show flashing progress and erase-then-flash UX | ✓ (handled by ESP Web Tools) |
-| Provision Wi-Fi credentials, HomeHub URL, sensorId | ✗ — still needs Moddable serial REPL (see [`docs/bring-up.md` § 3](../docs/bring-up.md)) |
+| Provision Wi-Fi credentials, HomeHub URL, sensorId | ✓ — WebSerial form on the page (release builds only; see below) |
 | Build the `.bin` files | ✗ — you must build with `mcconfig` first |
 
-Provisioning-over-WebSerial is a follow-up — would require firmware-side
-support for accepting JSON over UART0 outside the Moddable debugger.
+The provisioning form sends a single line over UART0 of the form
+`PROVISION:{json}\n`. The firmware's `provisioning.ts` listens for this
+when NVS is empty, validates, writes, and reboots. Heartbeat
+`READY:auraflow-provision-v1` lets the page detect provisioning mode.
+
+Provisioning-over-WebSerial works on **release builds** (which release
+UART0 to the application). On debug builds the Moddable debugger owns
+UART0 — in that case use the REPL path documented in
+[`docs/bring-up.md` § 3b](../docs/bring-up.md).
 
 ## Getting the binaries
 

@@ -61,17 +61,31 @@ cd web && python3 -m http.server 8080
 # open http://localhost:8080 in Chrome — click Connect & Flash
 ```
 
-## 3. Provision via the Moddable serial REPL
+## 3. Provision the device
 
-After flash, open the REPL:
+Two paths — pick whichever fits your build.
+
+### 3a. Web flasher form (release builds — recommended)
+
+Open the web flasher (`web/index.html` served at `localhost:8080` or your
+GitHub Pages URL) and click **Connect & Provision**. Pick the same serial
+port you used to flash. The page waits for the firmware's
+`READY:auraflow-provision-v1` heartbeat (within ~8 s of reset), then
+reveals the form. Fill it in and click **Send to device**. On success
+you'll see `✓ Provisioned. Device will restart…`.
+
+The web form works on release builds (`npm run build:firmware:release`)
+because UART0 isn't owned by xsbug. On debug builds use 3b instead.
+
+### 3b. Moddable serial REPL (debug builds)
 
 ```bash
 serial2xsbug /dev/cu.usbserial-XXXXXXXX 460800 8N1
 # or use the Moddable terminal — whichever your install provides
 ```
 
-Once you see `auraflow: NVS not provisioned. Run provisioning script over
-serial.`, paste this (replace placeholders):
+Once you see `auraflow: NVS not provisioned`, paste this (replace
+placeholders):
 
 ```js
 import Preference from 'preference';
@@ -86,14 +100,17 @@ Preference.set(D, 'wordOrder',      'low-word-first');               // CDAB; fl
 
 Reset the ESP32 (button on the board, or unplug/replug).
 
+### Verifying provisioning succeeded
+
 You should now see logs like:
 
 ```
 auraflow: wifi up — opening serial + starting poll loop
 ```
 
-If it stays at `NVS not provisioned`, the Preferences didn't take — re-run
-the provisioning lines and confirm with `Preference.keys('auraflow')`.
+If it stays at `NVS not provisioned`, the values didn't persist — re-run
+provisioning. With path 3a, watch the page status; with path 3b confirm
+with `Preference.keys('auraflow')`.
 
 ## 4. Register the sensor in HomeHub
 
