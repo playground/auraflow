@@ -1,0 +1,174 @@
+AuraFlow is a local-first, non-invasive water management system designed to provide high-precision leak detection without the need for plumbing modifications. By interfacing an ESP32 with ultrasonic transit-time sensors via RS485, the system captures real-time flow data through the pipe wall, maintaining total system integrity. Data is processed locally by a Node.js engine and stored in a lightweight SQLite database, where duration-based algorithms identify anomalies—ranging from slow drips to catastrophic bursts—to trigger multi-level safety warnings without ever relying on the cloud.
+
+Using a local SQLite database with a Node.js backend is a highly efficient, "set-it-and-forget-it" way to handle this. Since your main goal is leak detection through duration monitoring, the logic shifts from simple data logging to time-series analysis.
+
+1. Updated Implementation Plan
+In this architecture, the ESP32 acts as a "dumb" sensor bridge, and the Node.js server acts as the "brain."
+
+import Serial from "embedded:io/serial";
+import Timer from "timer";
+
+// Setup Serial for RS485 communication
+const rs485 = new Serial({
+    receive: 16,
+    transmit: 17,
+    baud: 9600,
+    port: 2 // UART2
+});
+
+function requestFlowData() {
+    // Modbus RTU command to read registers 0001-0002 (Flow Rate)
+    // Register 0001-0002 contains 32-bit float flow rate in m3/h
+    const query = Uint8Array.of(0x01, 0x03, 0x00, 0x01, 0x00, 0x02, 0x95, 0xCB);
+    rs485.write(query);
+}
+
+rs485.onReadable = function(count) {
+    let response = new Uint8Array(rs485.read());
+    if (response.length >= 7) {
+        // Simple byte extraction (Actual implementation requires Float32 conversion)
+        let flowRate = (response[3] << 24) | (response[4] << 16) | (response[5] << 8) | response[6];
+        trace(`Current Flow: ${flowRate} m3/h\n`);
+        
+        // Send to your local graph/logs via MQTT or HTTP
+        publishToLocalServer(flowRate);
+    }
+};
+
+Timer.repeat(() => {
+    requestFlowData();
+}, 5000); // Poll every 5 seconds
+
+Node.js Server: Receives the flow data.
+
+SQLite: Stores "Events." Instead of logging every second, log the Start Time and End Time of a flow event to keep the database small and fast.
+
+2. Node.js & SQLite Logic (The "Brain")
+You can use better-sqlite3 for a fast, synchronous-feeling API in Node.js. The following logic calculates the duration of flow to trigger warnings.
+
+JavaScript
+const Database = require('better-sqlite3');
+const db = new Database('water_monitor.db');
+
+// Initialize Table
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS flow_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    end_time DATETIME,
+    flow_rate REAL,
+    status TEXT DEFAULT 'active'
+  )
+`).run();
+
+/**
+ * Logic to handle incoming flow data
+ * @param {number} currentFlow - Flow rate from ESP32
+ */
+function processFlow(currentFlow) {
+    const activeEvent = db.prepare('SELECT * FROM flow_events WHERE status = "active"').get();
+
+    if (currentFlow > 0.1) { // Threshold for "flowing"
+        if (!activeEvent) {
+            // New flow started
+            db.prepare('INSERT INTO flow_events (flow_rate) VALUES (?)').run(currentFlow);
+        } else {
+            // Continue existing flow, check duration
+            const durationSec = (new Date() - new Date(activeEvent.start_time)) / 1000;
+            handleWarningLevels(durationSec);
+        }
+    } else if (activeEvent) {
+        // Flow stopped, close the event
+        db.prepare('UPDATE flow_events SET end_time = CURRENT_TIMESTAMP, status = "closed" WHERE id = ?')
+          .run(activeEvent.id);
+    }
+}
+
+function handleWarningLevels(duration) {
+    if (duration > 3600) { // 1 Hour
+        console.warn("CRITICAL: Water flowing for over 1 hour! Potential major leak.");
+    } else if (duration > 1800) { // 30 Minutes
+        console.log("WARNING: Water flowing for 30 minutes. Check the shower or hose.");
+    }
+}
+3. ESP32 Communication (TypeScript/JavaScript)
+Since you are using JavaScript on the ESP32 (Moddable), you can send the data to your Node.js server via a simple HTTP request.
+
+TypeScript
+// Inside your sensor polling loop
+let request = new Uint8Array(rs485.read());
+let flowRate = parseModbus(request); // Your function to parse the TUF-2000M data
+
+fetch("http://your-server-ip:3000/flow", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rate: flowRate })
+}).catch(err => trace("Network error: " + err));
+4. Why SQLite is Perfect Here
+Zero Latency: Since it’s a local file on your server (like a Mac or Raspberry Pi), it won't fail if the internet goes down.
+
+Simple Queries: You can easily run a query like:
+SELECT AVG(flow_rate) FROM flow_events WHERE start_time > date('now', '-7 days')
+to establish what a "normal" duration looks like for your household.
+
+5. Leak Detection Strategy
+To make your warning levels smart, consider these three categories:
+
+The "Slow Drip": Constant flow at a very low rate (e.g., 0.1 L/min) for 24+ hours.
+
+The "Forgot the Hose": Moderate flow for 1–2 hours.
+
+The "Burst Pipe": High flow rate for more than 5 minutes.
+
+By storing these in SQLite, you can build a simple dashboard in your Node.js app (using Express and a bit of HTML) to visualize these events without needing a complex graph database.
+
+Instructions: Flashing the ESP32
+Manual Method
+Install Moddable SDK: Follow the official guide for macOS.
+
+Connect Device: Use a high-quality data USB cable.
+
+Build & Flash: ```bash
+mcconfig -m -p esp32
+
+
+Web-Based Flashing (ESP Web Tools)
+To create a web tool for non-technical flashing:
+
+Use the ESP Web Tools library (WebSerial wrapper).
+
+Host a manifest.json file and your compiled .bin files on a secure (HTTPS) server.
+
+Web Interface (HTML/JS)
+HTML
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Water Flow Monitor Flasher</title>
+  <script type="module" src="[https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module](https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module)"></script>
+</head>
+<body>
+  <h1>Flash Your Water Sensor</h1>
+  <p>Ensure you are using Chrome or Edge.</p>
+  
+  <esp-web-install-button manifest="./manifest.json">
+    <button slot="activate">Connect & Flash Device</button>
+  </esp-web-install-button>
+</body>
+</html>
+Manifest (manifest.json)
+JSON
+{
+  "name": "Water Flow Monitor",
+  "version": "1.0.0",
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        { "path": "bootloader.bin", "offset": 4096 },
+        { "path": "partitions.bin", "offset": 32768 },
+        { "path": "firmware.bin", "offset": 65536 }
+      ]
+    }
+  ]
+}

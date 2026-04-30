@@ -1,0 +1,18 @@
+{
+  "name": "auraflow",
+  "version": "0.1.0",
+  "description": "ESP32 firmware for the AuraFlow water-flow leak-detection sensor (Moddable SDK)",
+  "private": true,
+  "scripts": {
+    "build:firmware": "mcconfig -d -m -p esp32",
+    "build:firmware:release": "mcconfig -m -p esp32",
+    "tsc": "tsc",
+    "tsc:check": "tsc --noEmit",
+    "test": "tsc && node --test 'dist/**/*.test.js'"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.7.0"
+  }
+}
