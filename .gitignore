@@ -18,3 +18,8 @@ src/firmware/c/sdkconfig
 src/firmware/c/sdkconfig.old
 src/firmware/c/managed_components/
 src/firmware/c/dependencies.lock
+
+# Host-side C test binaries (compiled by src/firmware/c/test/Makefile)
+src/firmware/c/test/test_*
+!src/firmware/c/test/test_*.c
+!src/firmware/c/test/test_*.h

@@ -5,13 +5,14 @@
   "private": true,
   "scripts": {
     "build:firmware":          "idf.py -C src/firmware/c build",
-    "flash:firmware":          "idf.py -C src/firmware/c flash monitor",
+    "flash:firmware":          "idf.py -C src/firmware/c -p /dev/cu.usbserial-0001 -b 115200 flash monitor",
     "monitor:firmware":        "idf.py -C src/firmware/c monitor",
     "menuconfig:firmware":     "idf.py -C src/firmware/c menuconfig",
     "build:firmware:moddable": "cd src/firmware/ts && mcconfig -d -m -p esp32 LANGUAGE=es2024",
     "tsc":       "tsc",
     "tsc:check": "tsc --noEmit",
-    "test":      "tsc && node --test 'dist/**/*.test.js'"
+    "test":      "tsc && node --test 'dist/**/*.test.js'",
+    "test:c":    "make -C src/firmware/c/test test"
   },
   "license": "ISC",
   "devDependencies": {
