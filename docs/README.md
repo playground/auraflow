@@ -22,6 +22,7 @@ All server-side code lives in HomeHub. AuraFlow is hardware + firmware + docs.
 | [`bring-up.md`](./bring-up.md) | **Step-by-step ESP32 bring-up runbook** — read this first when you have hardware in hand |
 | [`valve-setup.md`](./valve-setup.md) | **Tuya water valve onboarding** — pairing, localKey extraction, DPS, registration |
 | [`../web/README.md`](../web/README.md) | **Web flasher** — browser-based flashing via ESP Web Tools, for sharing devices without a toolchain |
+| [`provisioning-scenarios.md`](./provisioning-scenarios.md) | **Three-scenario architecture** — web flasher (maker), HomeHub dashboard (runtime), captive portal (consumer); how they coexist and the implementation plan |
 | [`architecture.md`](./architecture.md) | System overview, data flow, repo split rationale |
 | [`homehub-backend.md`](./homehub-backend.md) | Schema, routes, leak engine, settings |
 | [`firmware.md`](./firmware.md) | ESP32 firmware spec, Modbus parser, OTA, web flasher |
