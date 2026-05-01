@@ -24,6 +24,7 @@
 #define NVS_CONFIG_URL_MAX_LEN           128
 #define NVS_CONFIG_KEY_MAX_LEN           64
 #define NVS_CONFIG_SENSOR_ID_MAX_LEN     64
+#define NVS_CONFIG_IP_STR_MAX_LEN        15   /* "255.255.255.255" */
 
 typedef struct {
     char                  wifi_ssid[NVS_CONFIG_SSID_MAX_LEN + 1];
@@ -32,12 +33,21 @@ typedef struct {
     char                  internal_api_key[NVS_CONFIG_KEY_MAX_LEN + 1];
     char                  sensor_id[NVS_CONFIG_SENSOR_ID_MAX_LEN + 1];
     tuf2000m_word_order_t word_order;
+
+    /* Optional static IP. Empty strings → use DHCP. All three must be set
+     * together (validated by provisioning_validate_struct). */
+    char                  static_ip[NVS_CONFIG_IP_STR_MAX_LEN + 1];
+    char                  static_gateway[NVS_CONFIG_IP_STR_MAX_LEN + 1];
+    char                  static_netmask[NVS_CONFIG_IP_STR_MAX_LEN + 1];
 } nvs_config_t;
 
 /* ── Pure helpers ─────────────────────────────────────────────── */
 
 /** True if all required fields are non-empty (wifi_password is optional — open networks). */
 bool nvs_config_is_provisioned(const nvs_config_t *cfg);
+
+/** True if the three static-IP fields are all populated (caller wants static IP). */
+bool nvs_config_uses_static_ip(const nvs_config_t *cfg);
 
 /** Parse "low-word-first" / "high-word-first"; defaults to LOW on anything else. */
 tuf2000m_word_order_t nvs_config_parse_word_order(const char *s);

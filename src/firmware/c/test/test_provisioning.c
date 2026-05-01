@@ -164,6 +164,96 @@ static void test_validate_null_safe(void)
     ASSERT_EQ(r.status, PROVISION_ERR_EMPTY_FIELD);
 }
 
+/* ── static IP: optional, but all-or-nothing ──────────────────── */
+
+static void test_validate_no_static_ip_passes(void)
+{
+    nvs_config_t cfg;
+    populate_complete(&cfg);
+    /* All three static fields empty → DHCP, valid. */
+    provision_result_t r = provisioning_validate_struct(&cfg);
+    ASSERT_EQ(r.status, PROVISION_OK);
+}
+
+static void test_validate_full_static_ip_passes(void)
+{
+    nvs_config_t cfg;
+    populate_complete(&cfg);
+    strcpy(cfg.static_ip,      "192.168.1.42");
+    strcpy(cfg.static_gateway, "192.168.1.1");
+    strcpy(cfg.static_netmask, "255.255.255.0");
+    provision_result_t r = provisioning_validate_struct(&cfg);
+    ASSERT_EQ(r.status, PROVISION_OK);
+}
+
+static void test_validate_partial_static_ip_missing_gateway_fails(void)
+{
+    nvs_config_t cfg;
+    populate_complete(&cfg);
+    strcpy(cfg.static_ip,      "192.168.1.42");
+    /* gateway empty */
+    strcpy(cfg.static_netmask, "255.255.255.0");
+    provision_result_t r = provisioning_validate_struct(&cfg);
+    ASSERT_EQ(r.status, PROVISION_ERR_EMPTY_FIELD);
+    ASSERT_TRUE(strcmp(r.field_name, "staticGateway") == 0);
+}
+
+static void test_validate_partial_static_ip_missing_netmask_fails(void)
+{
+    nvs_config_t cfg;
+    populate_complete(&cfg);
+    strcpy(cfg.static_ip,      "192.168.1.42");
+    strcpy(cfg.static_gateway, "192.168.1.1");
+    /* netmask empty */
+    provision_result_t r = provisioning_validate_struct(&cfg);
+    ASSERT_EQ(r.status, PROVISION_ERR_EMPTY_FIELD);
+    ASSERT_TRUE(strcmp(r.field_name, "staticNetmask") == 0);
+}
+
+static void test_validate_only_gateway_set_fails(void)
+{
+    nvs_config_t cfg;
+    populate_complete(&cfg);
+    strcpy(cfg.static_gateway, "192.168.1.1");
+    /* ip + netmask empty */
+    provision_result_t r = provisioning_validate_struct(&cfg);
+    ASSERT_EQ(r.status, PROVISION_ERR_EMPTY_FIELD);
+    ASSERT_TRUE(strcmp(r.field_name, "staticIp") == 0);
+}
+
+/* ── nvs_config_uses_static_ip ───────────────────────────────── */
+
+static void test_uses_static_ip_all_empty_false(void)
+{
+    nvs_config_t cfg;
+    memset(&cfg, 0, sizeof(cfg));
+    ASSERT_TRUE(!nvs_config_uses_static_ip(&cfg));
+}
+
+static void test_uses_static_ip_all_set_true(void)
+{
+    nvs_config_t cfg;
+    memset(&cfg, 0, sizeof(cfg));
+    strcpy(cfg.static_ip,      "192.168.1.42");
+    strcpy(cfg.static_gateway, "192.168.1.1");
+    strcpy(cfg.static_netmask, "255.255.255.0");
+    ASSERT_TRUE(nvs_config_uses_static_ip(&cfg));
+}
+
+static void test_uses_static_ip_partial_false(void)
+{
+    nvs_config_t cfg;
+    memset(&cfg, 0, sizeof(cfg));
+    strcpy(cfg.static_ip, "192.168.1.42");
+    /* gateway, netmask empty */
+    ASSERT_TRUE(!nvs_config_uses_static_ip(&cfg));
+}
+
+static void test_uses_static_ip_null_safe(void)
+{
+    ASSERT_TRUE(!nvs_config_uses_static_ip(NULL));
+}
+
 int main(void)
 {
     RUN(test_strip_prefix_returns_body);
@@ -183,5 +273,14 @@ int main(void)
     RUN(test_validate_empty_sensor_id_fails);
     RUN(test_validate_first_missing_field_wins);
     RUN(test_validate_null_safe);
+    RUN(test_validate_no_static_ip_passes);
+    RUN(test_validate_full_static_ip_passes);
+    RUN(test_validate_partial_static_ip_missing_gateway_fails);
+    RUN(test_validate_partial_static_ip_missing_netmask_fails);
+    RUN(test_validate_only_gateway_set_fails);
+    RUN(test_uses_static_ip_all_empty_false);
+    RUN(test_uses_static_ip_all_set_true);
+    RUN(test_uses_static_ip_partial_false);
+    RUN(test_uses_static_ip_null_safe);
     TEST_SUMMARY_AND_EXIT();
 }

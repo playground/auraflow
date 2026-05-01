@@ -63,6 +63,9 @@ bool nvs_config_load(nvs_config_t *out)
     read_str_or_empty(handle, "homehubUrl",     out->homehub_url,      sizeof(out->homehub_url));
     read_str_or_empty(handle, "internalApiKey", out->internal_api_key, sizeof(out->internal_api_key));
     read_str_or_empty(handle, "sensorId",       out->sensor_id,        sizeof(out->sensor_id));
+    read_str_or_empty(handle, "staticIp",       out->static_ip,        sizeof(out->static_ip));
+    read_str_or_empty(handle, "staticGateway",  out->static_gateway,   sizeof(out->static_gateway));
+    read_str_or_empty(handle, "staticNetmask",  out->static_netmask,   sizeof(out->static_netmask));
 
     char wo[32] = {0};
     size_t wo_len = sizeof(wo);
@@ -91,6 +94,11 @@ bool nvs_config_save(const nvs_config_t *cfg)
     if (cfg->homehub_url[0])      ok &= (nvs_set_str(handle, "homehubUrl",     cfg->homehub_url)      == ESP_OK);
     if (cfg->internal_api_key[0]) ok &= (nvs_set_str(handle, "internalApiKey", cfg->internal_api_key) == ESP_OK);
     if (cfg->sensor_id[0])        ok &= (nvs_set_str(handle, "sensorId",       cfg->sensor_id)        == ESP_OK);
+    /* Static IP — write the empty string when clearing, otherwise the
+     * old NVS value would persist after a re-provision that wants DHCP. */
+    ok &= (nvs_set_str(handle, "staticIp",       cfg->static_ip)        == ESP_OK);
+    ok &= (nvs_set_str(handle, "staticGateway",  cfg->static_gateway)   == ESP_OK);
+    ok &= (nvs_set_str(handle, "staticNetmask",  cfg->static_netmask)   == ESP_OK);
     ok &= (nvs_set_str(handle, "wordOrder",
                        nvs_config_word_order_to_string(cfg->word_order)) == ESP_OK);
 

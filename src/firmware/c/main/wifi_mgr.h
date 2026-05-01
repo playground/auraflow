@@ -60,6 +60,13 @@ typedef void (*wifi_mgr_callback_t)(void);
 typedef struct {
     const char         *ssid;
     const char         *password;          /* may be empty for open networks */
+
+    /* Optional static IP. Either NULL/empty (DHCP) or all three set
+     * (static). Validated by provisioning_validate_struct upstream. */
+    const char         *static_ip;
+    const char         *static_gateway;
+    const char         *static_netmask;
+
     wifi_mgr_callback_t on_up;             /* called once after IP_EVENT_STA_GOT_IP */
     wifi_mgr_callback_t on_down;           /* called on WIFI_EVENT_STA_DISCONNECTED */
 } wifi_mgr_config_t;

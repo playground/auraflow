@@ -213,6 +213,25 @@
           </select>
           <span class="provision-help">If your first reading looks wrong, flip this and re-provision.</span>
         </label>
+
+        <details style="margin-top: 0.4rem;">
+          <summary style="cursor:pointer; color: var(--muted); font-size: 0.85rem;">
+            Advanced — static IP (optional, leave blank for DHCP)
+          </summary>
+          <div style="display:flex; flex-direction:column; gap:0.6rem; margin-top: 0.5rem;">
+            <label class="provision-label">Static IP
+              <input id="pid_staticIp" placeholder="e.g. 192.168.1.42" autocomplete="off">
+            </label>
+            <label class="provision-label">Gateway
+              <input id="pid_staticGateway" placeholder="e.g. 192.168.1.1" autocomplete="off">
+            </label>
+            <label class="provision-label">Netmask
+              <input id="pid_staticNetmask" placeholder="e.g. 255.255.255.0" autocomplete="off">
+            </label>
+            <span class="provision-help">All three or none — partial config is rejected.</span>
+          </div>
+        </details>
+
         <div style="display:flex; align-items:center; gap:0.6rem;">
           <button class="flash" type="submit">Send to device</button>
           <span id="provisionResult" style="font-size: 0.85rem;"></span>
@@ -224,7 +243,7 @@
           Or: provision via Moddable REPL (debug builds)
         </summary>
         <p style="font-size: 0.85rem; color: var(--muted); margin-top: 0.5rem;">
-          Open a serial terminal at <code>460800 8N1</code> and paste:
+          Open a serial terminal at <code>115200 8N1</code> and paste:
         </p>
         <pre>import Preference from 'preference';
 const D = 'auraflow';
@@ -279,7 +298,7 @@ Preference.set(D, 'wordOrder',      'low-word-first');</pre>
 
       try {
         const port = await navigator.serial.requestPort();
-        await port.open({ baudRate: 460800 });
+        await port.open({ baudRate: 115200 });
         serialPort = port;
         writer = port.writable.getWriter();
         status.textContent = 'Listening for READY heartbeat from device…';
@@ -314,6 +333,18 @@ Preference.set(D, 'wordOrder',      'low-word-first');</pre>
         internalApiKey: $('pid_internalApiKey').value.trim(),
         wordOrder:      $('pid_wordOrder').value,
       };
+
+      // Static IP — all-or-nothing. Include only if all three are populated;
+      // include none of them otherwise. Partial config is rejected by the
+      // firmware's validator with a clear error.
+      const ip = $('pid_staticIp').value.trim();
+      const gw = $('pid_staticGateway').value.trim();
+      const nm = $('pid_staticNetmask').value.trim();
+      if (ip || gw || nm) {
+        payload.staticIp      = ip;
+        payload.staticGateway = gw;
+        payload.staticNetmask = nm;
+      }
 
       if (!serialPort || !writer) {
         result.textContent = 'Not connected.'; result.className = 'err';

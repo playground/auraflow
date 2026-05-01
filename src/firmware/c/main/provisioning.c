@@ -63,5 +63,33 @@ provision_result_t provisioning_validate_struct(const nvs_config_t *cfg)
         }
     }
 
+    /* Static IP fields are optional, but ALL-OR-NOTHING. If any of the
+     * three is set, all three must be set — anything else is a partial
+     * config that would leave the device in a confusing half-state. */
+    struct { const char *name; const char *value; } static_ip[] = {
+        { "staticIp",      cfg->static_ip      },
+        { "staticGateway", cfg->static_gateway },
+        { "staticNetmask", cfg->static_netmask },
+    };
+
+    bool any_set = false;
+    bool all_set = true;
+    for (size_t i = 0; i < sizeof(static_ip) / sizeof(static_ip[0]); i++) {
+        bool set = (static_ip[i].value[0] != '\0');
+        any_set = any_set || set;
+        all_set = all_set && set;
+    }
+    if (any_set && !all_set) {
+        /* Name the first missing field so the error is actionable. */
+        for (size_t i = 0; i < sizeof(static_ip) / sizeof(static_ip[0]); i++) {
+            if (static_ip[i].value[0] == '\0') {
+                r.status = PROVISION_ERR_EMPTY_FIELD;
+                strncpy(r.field_name, static_ip[i].name, sizeof(r.field_name) - 1);
+                r.field_name[sizeof(r.field_name) - 1] = '\0';
+                return r;
+            }
+        }
+    }
+
     return r;
 }

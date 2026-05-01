@@ -97,6 +97,46 @@ static void event_handler(void *arg, esp_event_base_t base,
     }
 }
 
+/* Returns true if all three pointers point at non-empty strings. */
+static bool has_static_ip(const wifi_mgr_config_t *cfg)
+{
+    return cfg->static_ip      != NULL && cfg->static_ip[0]      != '\0'
+        && cfg->static_gateway != NULL && cfg->static_gateway[0] != '\0'
+        && cfg->static_netmask != NULL && cfg->static_netmask[0] != '\0';
+}
+
+/* Stop DHCP client and apply the static IP fields to the STA netif.
+ * Called BEFORE esp_wifi_start so the netif is configured by the time
+ * the connect attempt fires. Falls back to DHCP (logged) if any of the
+ * three values fails to parse as IPv4. */
+static void apply_static_ip(esp_netif_t *netif, const wifi_mgr_config_t *cfg)
+{
+    esp_netif_ip_info_t info = { 0 };
+    if (esp_netif_str_to_ip4(cfg->static_ip,      &info.ip)      != ESP_OK
+        || esp_netif_str_to_ip4(cfg->static_gateway, &info.gw)      != ESP_OK
+        || esp_netif_str_to_ip4(cfg->static_netmask, &info.netmask) != ESP_OK) {
+        ESP_LOGW(TAG, "static IP parse failed (ip=%s gw=%s nm=%s) — falling back to DHCP",
+                 cfg->static_ip, cfg->static_gateway, cfg->static_netmask);
+        return;
+    }
+
+    esp_err_t err = esp_netif_dhcpc_stop(netif);
+    if (err != ESP_OK && err != ESP_ERR_ESP_NETIF_DHCP_ALREADY_STOPPED) {
+        ESP_LOGW(TAG, "esp_netif_dhcpc_stop returned %s — continuing anyway",
+                 esp_err_to_name(err));
+    }
+
+    err = esp_netif_set_ip_info(netif, &info);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_netif_set_ip_info failed: %s — falling back to DHCP",
+                 esp_err_to_name(err));
+        esp_netif_dhcpc_start(netif);
+        return;
+    }
+    ESP_LOGI(TAG, "static IP configured: %s / %s gw %s",
+             cfg->static_ip, cfg->static_netmask, cfg->static_gateway);
+}
+
 void wifi_mgr_start(const wifi_mgr_config_t *cfg)
 {
     if (cfg == NULL || cfg->ssid == NULL) {
@@ -110,7 +150,11 @@ void wifi_mgr_start(const wifi_mgr_config_t *cfg)
 
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    esp_netif_create_default_wifi_sta();
+    esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
+
+    if (has_static_ip(cfg) && sta_netif != NULL) {
+        apply_static_ip(sta_netif, cfg);
+    }
 
     wifi_init_config_t wcfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&wcfg));

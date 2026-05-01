@@ -286,11 +286,22 @@ void app_main(void)
     strncpy(ucfg.sensor_id,        s_cfg.sensor_id,        sizeof(ucfg.sensor_id)        - 1);
     uplink_init(&s_uplink, &ucfg);
 
+    const bool static_ip = nvs_config_uses_static_ip(&s_cfg);
+    if (static_ip) {
+        ESP_LOGI(TAG, "static IP requested: ip=%s gw=%s nm=%s",
+                 s_cfg.static_ip, s_cfg.static_gateway, s_cfg.static_netmask);
+    } else {
+        ESP_LOGI(TAG, "no static IP configured — using DHCP");
+    }
+
     wifi_mgr_config_t wcfg = {
-        .ssid     = s_cfg.wifi_ssid,
-        .password = s_cfg.wifi_password,
-        .on_up    = on_wifi_up,
-        .on_down  = on_wifi_down,
+        .ssid           = s_cfg.wifi_ssid,
+        .password       = s_cfg.wifi_password,
+        .static_ip      = static_ip ? s_cfg.static_ip      : NULL,
+        .static_gateway = static_ip ? s_cfg.static_gateway : NULL,
+        .static_netmask = static_ip ? s_cfg.static_netmask : NULL,
+        .on_up          = on_wifi_up,
+        .on_down        = on_wifi_down,
     };
     wifi_mgr_start(&wcfg);
 }

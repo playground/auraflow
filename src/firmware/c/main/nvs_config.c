@@ -15,6 +15,14 @@ bool nvs_config_is_provisioned(const nvs_config_t *cfg)
         && cfg->sensor_id[0]        != '\0';
 }
 
+bool nvs_config_uses_static_ip(const nvs_config_t *cfg)
+{
+    if (cfg == NULL) return false;
+    return cfg->static_ip[0]      != '\0'
+        && cfg->static_gateway[0] != '\0'
+        && cfg->static_netmask[0] != '\0';
+}
+
 tuf2000m_word_order_t nvs_config_parse_word_order(const char *s)
 {
     if (s != NULL && strcmp(s, "high-word-first") == 0) {

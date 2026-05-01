@@ -17,7 +17,9 @@
 #include "provisioning.h"
 
 #define PROVISION_UART          UART_NUM_0
-#define PROVISION_BAUD          460800
+#define PROVISION_BAUD          115200    /* must match ESP-IDF's default console baud
+                                            (CONFIG_ESP_CONSOLE_UART_BAUDRATE) so printf
+                                            and the host monitor stay readable */
 #define PROVISION_RX_BUF        2048
 #define PROVISION_LINE_MAX      1024
 #define PROVISION_HEARTBEAT_MS  5000
@@ -71,6 +73,9 @@ provision_result_t provisioning_parse_line(const char *line, nvs_config_t *out)
     copy_field_if_present(root, "homehubUrl",     out->homehub_url,      sizeof(out->homehub_url));
     copy_field_if_present(root, "internalApiKey", out->internal_api_key, sizeof(out->internal_api_key));
     copy_field_if_present(root, "sensorId",       out->sensor_id,        sizeof(out->sensor_id));
+    copy_field_if_present(root, "staticIp",       out->static_ip,        sizeof(out->static_ip));
+    copy_field_if_present(root, "staticGateway",  out->static_gateway,   sizeof(out->static_gateway));
+    copy_field_if_present(root, "staticNetmask",  out->static_netmask,   sizeof(out->static_netmask));
 
     /* wordOrder is optional but, if present, must be valid. */
     cJSON *wo = cJSON_GetObjectItem(root, "wordOrder");
