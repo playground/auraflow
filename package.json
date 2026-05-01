@@ -1,14 +1,17 @@
 {
   "name": "auraflow",
   "version": "0.1.0",
-  "description": "ESP32 firmware for the AuraFlow water-flow leak-detection sensor (Moddable SDK)",
+  "description": "ESP32 firmware for the AuraFlow water-flow leak-detection sensor (ESP-IDF C; original Moddable JS kept under src/firmware/ts/ as a spec)",
   "private": true,
   "scripts": {
-    "build:firmware": "mcconfig -d -m -p esp32",
-    "build:firmware:release": "mcconfig -m -p esp32",
-    "tsc": "tsc",
+    "build:firmware":          "idf.py -C src/firmware/c build",
+    "flash:firmware":          "idf.py -C src/firmware/c flash monitor",
+    "monitor:firmware":        "idf.py -C src/firmware/c monitor",
+    "menuconfig:firmware":     "idf.py -C src/firmware/c menuconfig",
+    "build:firmware:moddable": "cd src/firmware/ts && mcconfig -d -m -p esp32 LANGUAGE=es2024",
+    "tsc":       "tsc",
     "tsc:check": "tsc --noEmit",
-    "test": "tsc && node --test 'dist/**/*.test.js'"
+    "test":      "tsc && node --test 'dist/**/*.test.js'"
   },
   "license": "ISC",
   "devDependencies": {

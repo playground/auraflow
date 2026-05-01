@@ -11,3 +11,10 @@ xs_*/
 
 # Firmware binaries are built per-machine, not committed
 web/bin/*.bin
+
+# ESP-IDF (C firmware build artifacts under src/firmware/c/)
+src/firmware/c/build/
+src/firmware/c/sdkconfig
+src/firmware/c/sdkconfig.old
+src/firmware/c/managed_components/
+src/firmware/c/dependencies.lock

@@ -1,0 +1,34 @@
+{
+  "build": {
+    "LANGUAGE": "es2024"
+  },
+  "include": [
+    "$(MODDABLE)/examples/manifest_base.json",
+    "$(MODDABLE)/examples/manifest_net.json",
+    "$(MODDABLE)/modules/files/preference/manifest.json",
+    "$(MODDABLE)/modules/io/serial/manifest.json",
+    "$(MODDABLE)/examples/io/tcp/fetch/manifest_fetch.json"
+  ],
+  "modules": {
+    "*": [
+      "./modbus",
+      "./tuf2000m",
+      "./ring-buffer",
+      "./uplink",
+      "./nvs",
+      "./wifi",
+      "./provisioning",
+      "./main"
+    ]
+  },
+  "preload": [
+    "modbus",
+    "tuf2000m",
+    "ring-buffer",
+    "uplink",
+    "provisioning"
+  ],
+  "config": {
+    "main": "main"
+  }
+}
