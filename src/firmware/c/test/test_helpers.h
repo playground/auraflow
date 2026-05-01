@@ -38,6 +38,22 @@ static int _t_test_fails_at_start = 0;
         }                                                                          \
     } while (0)
 
+/* Float comparison with absolute tolerance. Use 0 tolerance for exact bit values. */
+#define ASSERT_FLOAT_NEAR(actual, expected, eps)                                   \
+    do {                                                                           \
+        _t_assertions++;                                                           \
+        double _a    = (double)(actual);                                           \
+        double _e    = (double)(expected);                                         \
+        double _eps  = (double)(eps);                                              \
+        double _diff = _a - _e;                                                    \
+        if (_diff < 0) _diff = -_diff;                                             \
+        if (_diff > _eps) {                                                        \
+            fprintf(stderr, "  FAIL @ %s:%d: expected %g (±%g), got %g\n",         \
+                    __FILE__, __LINE__, _e, _eps, _a);                             \
+            _t_failures++;                                                         \
+        }                                                                          \
+    } while (0)
+
 #define RUN(testfn)                                                                \
     do {                                                                           \
         printf("%s\n", #testfn);                                                   \

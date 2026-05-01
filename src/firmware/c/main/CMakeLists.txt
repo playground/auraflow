@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         "main.c"
         "modbus.c"
+        "tuf2000m.c"
     INCLUDE_DIRS "."
 )
 # Common components (freertos, log, esp_system, etc.) are auto-included by

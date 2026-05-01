@@ -1,6 +1,7 @@
 # Host-side tests for the AuraFlow C firmware modules.
-# Each test_<module>.c builds into test_<module> by linking the matching
-# ../main/<module>.c. Add a new test by appending its name to TESTS.
+# Each test_<module>.c is built into a standalone executable with all
+# firmware modules under ../main/ linked in (except main.c, which has
+# app_main()). Adding a new test is one line: append to TESTS.
 #
 # Usage:
 #   make test     # build all + run each
@@ -9,11 +10,16 @@
 CC      = clang
 CFLAGS  = -std=c99 -Wall -Wextra -Werror -Wno-unused-function -O2 -I. -I../main
 
-TESTS   = test_modbus
+# All firmware modules under ../main/ except main.c (which defines app_main).
+MODULES = $(filter-out ../main/main.c,$(wildcard ../main/*.c))
+HEADERS = $(wildcard ../main/*.h)
 
-# Static-pattern rule: test_X depends on test_X.c + ../main/X.c
-$(TESTS): test_%: test_%.c ../main/%.c test_helpers.h ../main/%.h
-	$(CC) $(CFLAGS) test_$*.c ../main/$*.c -o $@
+TESTS   = test_modbus test_tuf2000m
+
+# Static-pattern rule: every test_X depends on test_X.c, all firmware
+# modules, and all headers. Recipe links the modules into the binary.
+$(TESTS): test_%: test_%.c $(MODULES) $(HEADERS) test_helpers.h
+	$(CC) $(CFLAGS) test_$*.c $(MODULES) -o $@
 
 .PHONY: all test clean
 all: $(TESTS)
