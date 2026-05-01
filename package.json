@@ -6,6 +6,7 @@
   "scripts": {
     "build:firmware":          "idf.py -C src/firmware/c build",
     "flash:firmware":          "idf.py -C src/firmware/c -p /dev/cu.usbserial-0001 -b 115200 flash monitor",
+    "flash:firmware:nostub":   "python -m esptool --chip esp32 --port /dev/cu.usbserial-0001 --baud 115200 --before default-reset --after hard-reset --no-stub write-flash --flash-mode dio --flash-size 4MB --flash-freq 40m 0x1000 src/firmware/c/build/bootloader/bootloader.bin 0x8000 src/firmware/c/build/partition_table/partition-table.bin 0xf000 src/firmware/c/build/ota_data_initial.bin 0x20000 src/firmware/c/build/auraflow.bin && npm run monitor:firmware",
     "monitor:firmware":        "idf.py -C src/firmware/c monitor",
     "menuconfig:firmware":     "idf.py -C src/firmware/c menuconfig",
     "build:firmware:moddable": "cd src/firmware/ts && mcconfig -d -m -p esp32 LANGUAGE=es2024",

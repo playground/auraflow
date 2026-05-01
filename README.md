@@ -117,6 +117,18 @@ Preference.set('auraflow', 'wordOrder', 'high-word-first');   // ABCD
 
 Reset and re-test.
 
+## Useful keys
+Ctrl+] (Ctrl + right square bracket).                            
+                                                                 
+  The header line at the top of the monitor session shows it:      
+  --- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+                                                                   
+  Other useful shortcuts in the same monitor:                      
+  - Ctrl+T R — reboot the chip                                     
+  - Ctrl+T A — toggle showing addresses for log lines              
+  - Ctrl+T H — full help menu                                      
+  - Ctrl+C — does NOT quit (just sends a signal); use Ctrl+]
+
 ## License
 
 ISC
