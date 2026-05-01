@@ -3,6 +3,7 @@ idf_component_register(
         "main.c"
         "modbus.c"
         "tuf2000m.c"
+        "ring_buffer.c"
     INCLUDE_DIRS "."
 )
 # Common components (freertos, log, esp_system, etc.) are auto-included by

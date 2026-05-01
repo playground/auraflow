@@ -14,7 +14,7 @@ CFLAGS  = -std=c99 -Wall -Wextra -Werror -Wno-unused-function -O2 -I. -I../main
 MODULES = $(filter-out ../main/main.c,$(wildcard ../main/*.c))
 HEADERS = $(wildcard ../main/*.h)
 
-TESTS   = test_modbus test_tuf2000m
+TESTS   = test_modbus test_tuf2000m test_ring_buffer
 
 # Static-pattern rule: every test_X depends on test_X.c, all firmware
 # modules, and all headers. Recipe links the modules into the binary.
