@@ -12,11 +12,11 @@ idf_component_register(
         "wifi_mgr_esp.c"
         "uplink.c"
         "uplink_esp.c"
+        "cJSON.c"        # vendored — ESP-IDF v6.0 dropped the bundled `json` component
     INCLUDE_DIRS "."
     REQUIRES
         nvs_flash
-        driver           # UART driver for the provisioning listener
-        json             # cJSON for parsing PROVISION:{...} payloads
+        esp_driver_uart  # UART driver for the provisioning listener (v6.0+ split)
         esp_wifi
         esp_netif
         esp_event

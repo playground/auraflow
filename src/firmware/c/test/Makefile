@@ -13,8 +13,10 @@ CFLAGS  = -std=c99 -Wall -Wextra -Werror -Wno-unused-function -O2 -I. -I../main
 # All firmware modules under ../main/ except:
 #   - main.c       — defines app_main(), conflicts with each test's main()
 #   - *_esp.c      — ESP-IDF I/O code that doesn't compile on host
+#   - cJSON.c      — vendored library, not exercised by host tests
 MODULES := $(filter-out ../main/main.c,$(wildcard ../main/*.c))
 MODULES := $(filter-out %_esp.c,$(MODULES))
+MODULES := $(filter-out ../main/cJSON.c,$(MODULES))
 HEADERS := $(wildcard ../main/*.h)
 
 TESTS = test_modbus test_tuf2000m test_ring_buffer test_nvs_config test_provisioning test_wifi_mgr test_uplink
