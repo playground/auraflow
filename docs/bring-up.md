@@ -12,60 +12,80 @@ Prerequisites:
 - HomeHub backend running and reachable on your LAN (note its IP and port)
 - HomeHub admin JWT *or* admin login at `/login`
 
-## 1. Install the Moddable SDK (one-time)
+## 1. Install ESP-IDF v6.0 (one-time)
 
-Follow the official setup for your OS:
-<https://github.com/Moddable-OpenSource/moddable/blob/public/documentation/Moddable%20SDK%20-%20Getting%20Started.md>
+Follow Espressif's setup for your OS:
+<https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/index.html>
 
-After install, verify:
+Typical macOS install:
 
 ```bash
-echo $MODDABLE
-# should print the SDK path
-mcconfig --help
-# should print the build-tool help
+mkdir -p ~/sandbox/esp32 && cd ~/sandbox/esp32
+git clone -b v6.0 --recursive https://github.com/espressif/esp-idf.git
+./esp-idf/install.sh esp32
 ```
 
-If `MODDABLE` is empty, source the SDK's `setupmac.sh` (macOS) or run the
-shell init their docs specify.
+Then export `IDF_PATH` in your shell rc so the npm wrapper scripts can
+find it:
+
+```bash
+echo 'export IDF_PATH=$HOME/sandbox/esp32/esp-idf' >> ~/.zshrc
+source ~/.zshrc
+```
+
+Verify:
+
+```bash
+ls "$IDF_PATH/export.sh"   # should exist
+```
+
+`scripts/with-idf.sh` sources `$IDF_PATH/export.sh` on demand, so the npm
+build / flash / monitor commands work from a fresh shell without manual
+sourcing.
 
 ## 2. Build the firmware
 
 ```bash
 cd ~/sandbox/auraflow
-npm install                              # only on first checkout
-npm test                                 # sanity check — should be 32/32 green
-npm run build:firmware                   # debug build + flash to connected ESP32
-# or for a release build later:
-npm run build:firmware:release
+npm install                      # only on first checkout
+npm run test:c                   # sanity check — pure C modules; should pass
+npm run build:firmware           # idf.py build via scripts/with-idf.sh
 ```
 
-`mcconfig -d -m -p esp32` is what `build:firmware` runs. The first build
-compiles the entire SDK and takes ~10 min. Subsequent builds are <30s.
+The first build of a fresh checkout takes ~3 min while ESP-IDF compiles
+its components. Subsequent incremental builds are <30 s.
 
-If `mcconfig` fails with "no such file `manifest.json`", run from the repo
-root, not from inside `src/`.
+If the build complains about a missing component or the SDK version, re-run
+`./install.sh esp32` from `$IDF_PATH` to refresh the toolchain.
 
-### Alternative: browser-based flash via the web flasher
+## 3. Flash + monitor
 
-After your first successful Moddable build (which produces the `.bin`
-files), you can flash any subsequent ESP32 from Chrome/Edge without
-running `mcconfig` again. Useful for friends/family/colleagues who you
-want to give a sensor without showing them a terminal.
-
-See [`../web/README.md`](../web/README.md). For a quick local test:
+With the ESP32 plugged in:
 
 ```bash
-# After a build, copy the three binaries into web/bin/ as the README explains
-cd web && python3 -m http.server 8080
-# open http://localhost:8080 in Chrome — click Connect & Flash
+npm run flash:firmware           # builds (if needed), flashes, then monitors
 ```
 
-## 3. Provision the device
+The script targets `/dev/cu.usbserial-0001` at 115200 baud — adjust the
+port in `package.json` if yours differs (`ls /dev/cu.usbserial-*`).
 
-Two paths — pick whichever fits your build.
+Monitor controls: **Ctrl+]** to quit, **Ctrl+T R** to reboot the chip,
+**Ctrl+T H** for full help.
 
-### 3a. Web flasher form (release builds — recommended)
+A successful first boot prints something like:
+
+```
+I (xxxx) auraflow: AuraFlow firmware 0.1.0-c starting (boot=power)
+W (xxxx) auraflow: NVS not provisioned — listening on UART0 for PROVISION:{...}
+```
+
+That's the cue to provision (next section).
+
+## 4. Provision the device
+
+Two paths — pick whichever fits.
+
+### 4a. Web flasher form (recommended)
 
 Open the web flasher (`web/index.html` served at `localhost:8080` or your
 GitHub Pages URL) and click **Connect & Provision**. Pick the same serial
@@ -74,51 +94,56 @@ port you used to flash. The page waits for the firmware's
 reveals the form. Fill it in and click **Send to device**. On success
 you'll see `✓ Provisioned. Device will restart…`.
 
-The web form works on release builds (`npm run build:firmware:release`)
-because UART0 isn't owned by xsbug. On debug builds use 3b instead.
-
-### 3b. Moddable serial REPL (debug builds)
+### 4b. CLI script
 
 ```bash
-serial2xsbug /dev/cu.usbserial-XXXXXXXX 460800 8N1
-# or use the Moddable terminal — whichever your install provides
+# 1. Edit docs/.env (gitignored) with one line:
+#    PROVISION:{"sensorId":"auraflow-mainline-01",
+#               "wifiSsid":"YourSSID",
+#               "wifiPassword":"YourPassword",
+#               "homehubUrl":"http://192.168.1.10:3000",
+#               "internalApiKey":"paste-INTERNAL_API_KEY-here",
+#               "wordOrder":"low-word-first"}
+#
+# Optional static IP — all three or none:
+#               "staticIp":"192.168.1.42",
+#               "staticGateway":"192.168.1.1",
+#               "staticNetmask":"255.255.255.0"
+#
+# 2. With the ESP32 plugged in and listening (NVS not provisioned):
+npm run provision
 ```
 
-Once you see `auraflow: NVS not provisioned`, paste this (replace
-placeholders):
+The script sends the line over UART0 at 115200 baud. The firmware
+validates, writes to NVS, and reboots automatically.
 
-```js
-import Preference from 'preference';
-const D = 'auraflow';
-Preference.set(D, 'wifiSsid',       'YourSSID');
-Preference.set(D, 'wifiPassword',   'YourPassword');
-Preference.set(D, 'homehubUrl',     'http://192.168.1.10:3000');     // your homehub
-Preference.set(D, 'internalApiKey', 'paste-INTERNAL_API_KEY-here');  // from homehub .env
-Preference.set(D, 'sensorId',       'auraflow-mainline-01');
-Preference.set(D, 'wordOrder',      'low-word-first');               // CDAB; flip later if needed
-```
+### 4c. Already-provisioned device (changing config later)
 
-Reset the ESP32 (button on the board, or unplug/replug).
+Once a device is online you don't need either path above — point a
+browser at `http://<device-ip>/edit`, change fields, click **Save &
+reboot**. Same NVS keys, same validator.
 
 ### Verifying provisioning succeeded
 
-You should now see logs like:
+After a reboot you should see logs like:
 
 ```
-auraflow: wifi up — opening serial + starting poll loop
+I (xxxx) auraflow: provisioned: sensorId=… homehub=… wordOrder=…
+I (xxxx) wifi_mgr: got IP
+I (xxxx) auraflow: Wi-Fi up
+I (xxxx) auraflow: poll task started; cadence will adapt to server config
 ```
 
 If it stays at `NVS not provisioned`, the values didn't persist — re-run
-provisioning. With path 3a, watch the page status; with path 3b confirm
-with `Preference.keys('auraflow')`.
+the provisioning step.
 
-## 4. Register the sensor in HomeHub
+## 5. Register the sensor in HomeHub
 
 Easiest path is the dashboard:
 
 1. Visit `http://<homehub-host>:4201/sensors`
 2. Click **+ Add sensor**
-3. **Sensor ID** must match the value you wrote to NVS in step 3 (e.g.
+3. **Sensor ID** must match the value you wrote to NVS in step 4 (e.g.
    `auraflow-mainline-01`)
 4. **Display name** is for the dashboard (e.g. `Main line`)
 5. Click **Create**
@@ -136,7 +161,7 @@ curl -X POST http://<homehub-host>:3000/api/sensors \
   -d '{"sensorId":"auraflow-mainline-01","alias":"Main line","type":"flow"}'
 ```
 
-## 5. Verify ingestion
+## 6. Verify ingestion
 
 Within a minute of provisioning + registering, the dashboard's `/sensors`
 list should show:
@@ -152,19 +177,17 @@ If the sensor shows "never reported":
 
 - ESP32 is not reaching HomeHub — check the URL, port, and that they're on
   the same LAN
-- The internal key doesn't match — compare NVS value to HomeHub's
-  `INTERNAL_API_KEY` env var
+- The internal key doesn't match — compare the value in NVS (visible at
+  `http://<device-ip>/edit`) to HomeHub's `INTERNAL_API_KEY` env var
 - The sensor ID doesn't match — case-sensitive
 
 If the sensor reports but **rate is nonsense** (NaN, infinity, way off):
 
-- The TUF-2000M is configured for ABCD instead of CDAB. Flip the word order:
-  ```js
-  Preference.set('auraflow', 'wordOrder', 'high-word-first');
-  ```
-- Reset the ESP32; rate should look normal.
+- The TUF-2000M is configured for ABCD instead of CDAB. Flip the word
+  order via `http://<device-ip>/edit` — change "Modbus word order" to
+  ABCD (high-word-first), Save & reboot.
 
-## 6. Calibration check (recommended once)
+## 7. Calibration check (recommended once)
 
 1. Note the totalizer in the sensor detail view (or in the meter's display).
 2. Fully fill a calibrated container (5 gal / 19 L) from a faucet downstream
@@ -176,7 +199,23 @@ If off by >5%, recheck pipe outer diameter and wall thickness in the
 TUF-2000M's M11/M12 menus, or reposition the transducers (signal quality
 should be ≥60 — visible in the sensor detail page).
 
-## 7. Next steps
+## 8. Updating the firmware
+
+Once the device is online, all future updates go OTA:
+
+```bash
+# Make changes, rebuild, push to the device:
+npm run build:firmware
+npm run ota:firmware -- <device-ip>
+```
+
+The script serves the new `auraflow.bin` from your laptop and POSTs the
+URL to `http://<device-ip>/ota`. The device fetches, swaps to the
+inactive OTA slot, and reboots — typically 10-60 s end to end.
+
+No USB cable needed for updates after the first flash.
+
+## 9. Next steps
 
 - Once the Tuya valve arrives, follow [`valve-setup.md`](./valve-setup.md).
 - After the valve is wired up, use the dashboard's **Test fire valve**

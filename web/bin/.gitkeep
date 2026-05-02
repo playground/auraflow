@@ -1,2 +1,6 @@
-# Built firmware binaries go here. See ../README.md for how to populate them.
-# The .bin files themselves are gitignored (per-machine output of `mcconfig`).
+# Published firmware binaries live here.
+#
+# Contents are tracked (the flasher serves them) but they're regenerated
+# by `npm run publish:flasher`, which copies the four ESP-IDF outputs out
+# of src/firmware/c/build/ and renames them to match manifest.json:
+#   bootloader.bin, partitions.bin, ota_data_initial.bin, firmware.bin

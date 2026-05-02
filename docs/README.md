@@ -10,7 +10,7 @@ shutoff valve.
 
 | Repo | Responsibility |
 |---|---|
-| `auraflow/` (this repo) | ESP32 firmware (Moddable JS), web flasher, hardware docs |
+| `auraflow/` (this repo) | ESP32 firmware (ESP-IDF C), web flasher, hardware docs |
 | `homehub/` | All backend logic: ingestion, persistence, leak engine, alerts, UI |
 
 All server-side code lives in HomeHub. AuraFlow is hardware + firmware + docs.
@@ -25,7 +25,7 @@ All server-side code lives in HomeHub. AuraFlow is hardware + firmware + docs.
 | [`provisioning-scenarios.md`](./provisioning-scenarios.md) | **Three-scenario architecture** — web flasher (maker), HomeHub dashboard (runtime), captive portal (consumer); how they coexist and the implementation plan |
 | [`architecture.md`](./architecture.md) | System overview, data flow, repo split rationale |
 | [`homehub-backend.md`](./homehub-backend.md) | Schema, routes, leak engine, settings |
-| [`firmware.md`](./firmware.md) | ESP32 firmware spec, Modbus parser, OTA, web flasher |
+| [`firmware.md`](./firmware.md) | ESP32 firmware spec — modules, Modbus parser, on-device HTTP, OTA, web flasher |
 | [`notifications.md`](./notifications.md) | Tiered alert strategy (push/email/SMS/voice) |
 | [`hardware.md`](./hardware.md) | BOM, wiring, sensor placement, Tuya valve notes |
 | [`subscription-model.md`](./subscription-model.md) | Deferred billing strategy and architecture |
@@ -36,6 +36,9 @@ All server-side code lives in HomeHub. AuraFlow is hardware + firmware + docs.
 ## Status
 
 - Planning complete.
-- No implementation started.
-- First slice to ship: HomeHub backend ingestion + leak engine (see
-  [`roadmap.md`](./roadmap.md) Phase 1).
+- ESP32 firmware: shipped through end-user provisioning, on-device HTTP
+  config (`/`, `/edit`, `/diag`, `/config`), OTA via `POST /ota`, NVS-cached
+  poll cadence, web flasher hosted on GitHub Pages. Hardware integration
+  (TUF-2000M wiring + valve) blocked on hardware procurement.
+- HomeHub side: leak engine + cadence dashboard widget + OTA management UI
+  are next (see [`roadmap.md`](./roadmap.md) Phase 1).

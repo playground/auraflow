@@ -275,19 +275,19 @@
 
       <details style="margin-top: 0.8rem;">
         <summary style="cursor:pointer; color: var(--muted); font-size: 0.85rem;">
-          Or: provision via Moddable REPL (debug builds)
+          Or: provision from the CLI
         </summary>
         <p style="font-size: 0.85rem; color: var(--muted); margin-top: 0.5rem;">
-          Open a serial terminal at <code>115200 8N1</code> and paste:
+          If you'd rather not use this form, write the values to
+          <code>docs/.env</code> in the source repo as a single
+          <code>PROVISION:{…}</code> line and run:
         </p>
-        <pre>import Preference from 'preference';
-const D = 'auraflow';
-Preference.set(D, 'wifiSsid',       'YourSSID');
-Preference.set(D, 'wifiPassword',   'YourPassword');
-Preference.set(D, 'homehubUrl',     'http://192.168.1.10:3000');
-Preference.set(D, 'internalApiKey', 'paste-INTERNAL_API_KEY-here');
-Preference.set(D, 'sensorId',       'auraflow-mainline-01');
-Preference.set(D, 'wordOrder',      'low-word-first');</pre>
+        <pre>npm run provision</pre>
+        <p style="font-size: 0.85rem; color: var(--muted); margin-top: 0.5rem;">
+          Same wire protocol — sends <code>PROVISION:{json}</code> over
+          UART0 at 115200 baud. Useful when you're flashing many devices
+          from a script.
+        </p>
       </details>
     </div>
 
@@ -304,7 +304,7 @@ Preference.set(D, 'wordOrder',      'low-word-first');</pre>
 
     <p class="footer-note">
       Source: <a href="https://github.com/foodisready/auraflow">github.com/foodisready/auraflow</a> ·
-      Phase 5 — first version: flashing only. Provisioning-over-WebSerial coming.
+      Flash + WebSerial provisioning + on-device <code>/edit</code> + OTA all wired up.
     </p>
   </main>
 

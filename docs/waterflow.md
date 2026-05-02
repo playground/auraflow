@@ -1,3 +1,9 @@
+> **Note (historical):** this is a planning-phase artifact from when the
+> firmware was written in Moddable JavaScript/TypeScript. It's preserved
+> as source material for the original product spec. The active firmware
+> is now native ESP-IDF C — see [`firmware.md`](./firmware.md) and
+> [`bring-up.md`](./bring-up.md) for current state.
+
 Your IoT water flow sensor implementation plan is ready.
 
 Your Markdown file is ready

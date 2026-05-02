@@ -300,8 +300,8 @@ this changes, we add a Bearer token gated against `internalApiKey`.
 
 ## Cross-references
 
-- [`firmware.md`](./firmware.md) — original Moddable JS firmware spec (now reference)
-- [`bring-up.md`](./bring-up.md) — current C-firmware build/flash/provision steps
+- [`firmware.md`](./firmware.md) — current ESP-IDF C firmware spec (modules, on-device HTTP, OTA)
+- [`bring-up.md`](./bring-up.md) — build/flash/provision runbook
 - [`homehub-backend.md`](./homehub-backend.md) — schema + API surfaces consumed
 - [`subscription-model.md`](./subscription-model.md) — productization decisions
 - [`roadmap.md`](./roadmap.md) — phase ordering

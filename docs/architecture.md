@@ -5,7 +5,7 @@
 ```
 ┌─────────────────────┐    RS485     ┌──────────────────┐
 │  TUF-2000M          │ ◄──Modbus──► │  ESP32           │
-│  ultrasonic flow    │   RTU 9600   │  (Moddable JS)   │
+│  ultrasonic flow    │   RTU 9600   │  (ESP-IDF C)     │
 │  transducer + meter │              │  - read flow     │
 └─────────────────────┘              │  - parse CDAB    │
                                      │  - buffer        │

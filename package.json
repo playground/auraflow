@@ -12,7 +12,6 @@
     "provision":               "scripts/with-idf.sh python3 scripts/send-provision.py docs/.env",
     "ota:firmware":            "python3 scripts/ota.py",
     "publish:flasher":         "scripts/publish-flasher.sh",
-    "build:firmware:moddable": "cd src/firmware/ts && mcconfig -d -m -p esp32 LANGUAGE=es2024",
     "tsc":       "tsc",
     "tsc:check": "tsc --noEmit",
     "test":      "tsc && node --test 'dist/**/*.test.js'",
