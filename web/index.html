@@ -139,6 +139,32 @@
       iOS and Firefox are not supported.
     </div>
 
+    <!-- ── Before you start ────────────────────────────────────── -->
+    <div class="card">
+      <h2>Before you start</h2>
+      <ul style="color: var(--muted); font-size: 0.9rem; padding-left: 1.2rem; margin: 0.4rem 0;">
+        <li>
+          <strong>Browser:</strong> Chrome or Edge on desktop (macOS, Windows,
+          Linux), or Chrome on Android. iOS and Firefox don't support
+          WebSerial — they won't see the flash button.
+        </li>
+        <li>
+          <strong>USB cable:</strong> use a <em>data</em> cable. Charge-only
+          USB-C cables look identical but won't expose a serial port — the
+          single most common reason "no port shows up".
+        </li>
+        <li>
+          <strong>Hardware:</strong> an ESP32 dev board (WROOM-32 etc.) with
+          a CH340 or CP210x USB-serial chip. macOS / Linux usually have the
+          driver built in; Windows may need a one-click driver install.
+        </li>
+        <li>
+          <strong>For ongoing updates:</strong> once a device is provisioned
+          and online, OTA is the better path — no USB cable needed.
+        </li>
+      </ul>
+    </div>
+
     <!-- ── Step 1: Connect ─────────────────────────────────────── -->
     <div class="card">
       <h2><span class="step-num">1</span>Connect the ESP32</h2>
@@ -158,6 +184,15 @@
         <code>USB Serial</code> or <code>cp210x</code>), and confirm.
         The flash takes ~30 seconds.
       </p>
+      <!--
+        Single-product flasher today. To support multiple variants (e.g.
+        Mainline vs +Valve, or partner brands), follow the Liquid Prep
+        pattern — keep one esp-web-install-button, but split manifests
+        per variant under web/manifests/, and add a <select> above this
+        button that rewrites the `manifest` attribute on change. ESP Web
+        Tools auto-detects the chip family at flash time, so a wrong
+        selection fails safely.
+      -->
       <p style="margin: 1rem 0;">
         <esp-web-install-button manifest="./manifest.json">
           <button slot="activate" class="flash">Connect &amp; Flash</button>
