@@ -60,13 +60,19 @@ Open <http://localhost:8080> in Chrome or Edge. Click the install button.
 
 Pages requires HTTPS for non-localhost WebSerial — Pages provides it.
 
+`Deploy from a branch` only allows the repo root or `/docs`, so this
+repo uses the **GitHub Actions** deployment path. The workflow
+(`.github/workflows/pages.yml`) uploads `web/` as the Pages artifact on
+every push that touches it.
+
 One-time setup (UI):
 
 1. Repo → **Settings → Pages**
-2. **Source**: `Deploy from a branch`
-3. **Branch**: `main`, **Folder**: `/web`
-4. Save. Site goes live at `https://<owner>.github.io/<repo>/` after
-   ~30 s.
+2. **Source**: `GitHub Actions`
+3. Save (no branch/folder picker in this mode).
+4. Push something under `web/` (or trigger the workflow manually).
+   Site goes live at `https://<owner>.github.io/<repo>/` after the
+   workflow run finishes.
 
 Private repo + GitHub Pro (or higher) is supported — sources stay
 private, the published site is public.

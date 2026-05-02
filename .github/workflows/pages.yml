@@ -1,0 +1,45 @@
+# Deploys the contents of web/ to GitHub Pages.
+#
+# GitHub Pages' "deploy from a branch" mode only allows publishing
+# from / or /docs. Since we want to keep architecture docs in /docs
+# and the flasher in /web, we use the GitHub Actions deployment path
+# and upload only web/ as the Pages artifact.
+#
+# To activate: repo → Settings → Pages → Source: "GitHub Actions".
+# The deploy URL appears in the run summary after the first success.
+
+name: Deploy flasher to Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one in-flight Pages deploy at a time, but never cancel
+# a running deploy mid-upload — let it finish before queueing the next.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./web
+      - id: deployment
+        uses: actions/deploy-pages@v4
