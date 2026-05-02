@@ -107,6 +107,45 @@ bool nvs_config_save(const nvs_config_t *cfg)
     return ok;
 }
 
+bool nvs_config_poll_load(int *poll_ms, int *flowing_ms, int *idle_ms)
+{
+    if (poll_ms == NULL || flowing_ms == NULL || idle_ms == NULL) return false;
+
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open(NVS_NS, NVS_READONLY, &handle);
+    if (err != ESP_OK) return false;
+
+    int32_t p = 0, f = 0, i = 0;
+    bool ok = (nvs_get_i32(handle, "pollMs",        &p) == ESP_OK)
+           && (nvs_get_i32(handle, "flowingPollMs", &f) == ESP_OK)
+           && (nvs_get_i32(handle, "idlePollMs",    &i) == ESP_OK);
+    nvs_close(handle);
+
+    if (ok) {
+        *poll_ms    = p;
+        *flowing_ms = f;
+        *idle_ms    = i;
+    }
+    return ok;
+}
+
+bool nvs_config_poll_save(int poll_ms, int flowing_ms, int idle_ms)
+{
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open(NVS_NS, NVS_READWRITE, &handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "poll_save: nvs_open(rw) failed: %s", esp_err_to_name(err));
+        return false;
+    }
+
+    bool ok = (nvs_set_i32(handle, "pollMs",        poll_ms)    == ESP_OK)
+           && (nvs_set_i32(handle, "flowingPollMs", flowing_ms) == ESP_OK)
+           && (nvs_set_i32(handle, "idlePollMs",    idle_ms)    == ESP_OK);
+    if (ok) ok = (nvs_commit(handle) == ESP_OK);
+    nvs_close(handle);
+    return ok;
+}
+
 bool nvs_config_reset(void)
 {
     nvs_handle_t handle;

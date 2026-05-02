@@ -53,11 +53,14 @@
 
 static const char *TAG = "auraflow";
 
-static nvs_config_t  s_cfg;
-static uplink_t      s_uplink;
-static const char   *s_boot_reason = "unknown";
-static char          s_mac_str[18];
-static int           s_current_poll_ms = UPLINK_DEFAULT_IDLE_POLL_INTERVAL_MS;
+static nvs_config_t          s_cfg;
+static uplink_t              s_uplink;
+static const char           *s_boot_reason = "unknown";
+static char                  s_mac_str[18];
+static int                   s_current_poll_ms = UPLINK_DEFAULT_IDLE_POLL_INTERVAL_MS;
+/* Last cadence written to NVS — compared against each push's response to
+ * skip the i32 writes when nothing changed. Initialized in app_main. */
+static uplink_poll_config_t  s_last_persisted_pc = { 0 };
 
 /* ── Modbus exchange over UART2 ──────────────────────────────── */
 
@@ -224,6 +227,25 @@ static void poll_task(void *arg)
             ? pc.flowing_poll_interval_ms
             : pc.idle_poll_interval_ms;
 
+        /* Mirror the latest cadence to NVS so a reboot resumes here
+         * instead of the firmware default. Skip when unchanged to avoid
+         * gratuitous flash writes — uplink_push returns the cached
+         * last_poll_config on offline pushes, so this naturally
+         * idles when there's no network. */
+        if (pc.poll_interval_ms         != s_last_persisted_pc.poll_interval_ms
+         || pc.flowing_poll_interval_ms != s_last_persisted_pc.flowing_poll_interval_ms
+         || pc.idle_poll_interval_ms    != s_last_persisted_pc.idle_poll_interval_ms) {
+            if (nvs_config_poll_save(pc.poll_interval_ms,
+                                     pc.flowing_poll_interval_ms,
+                                     pc.idle_poll_interval_ms)) {
+                s_last_persisted_pc = pc;
+                ESP_LOGI(TAG, "poll cadence persisted: poll=%d flowing=%d idle=%d",
+                         pc.poll_interval_ms,
+                         pc.flowing_poll_interval_ms,
+                         pc.idle_poll_interval_ms);
+            }
+        }
+
         ESP_LOGI(TAG,
                  "rate=%.4f m³/h%s sq=%s rssi=%s pending=%u next=%dms",
                  (double)reading.rate_m3h,
@@ -307,6 +329,22 @@ void app_main(void)
     strncpy(ucfg.internal_api_key, s_cfg.internal_api_key, sizeof(ucfg.internal_api_key) - 1);
     strncpy(ucfg.sensor_id,        s_cfg.sensor_id,        sizeof(ucfg.sensor_id)        - 1);
     uplink_init(&s_uplink, &ucfg);
+
+    /* Restore last-known cadence from NVS so we don't run on firmware
+     * defaults until HomeHub's first response. Falls back silently when
+     * nothing has been cached yet (fresh device). */
+    int p_ms = 0, f_ms = 0, i_ms = 0;
+    if (nvs_config_poll_load(&p_ms, &f_ms, &i_ms)) {
+        s_uplink.last_poll_config.poll_interval_ms         = p_ms;
+        s_uplink.last_poll_config.flowing_poll_interval_ms = f_ms;
+        s_uplink.last_poll_config.idle_poll_interval_ms    = i_ms;
+        s_current_poll_ms       = i_ms;   /* assume idle until first reading */
+        s_last_persisted_pc     = s_uplink.last_poll_config;
+        ESP_LOGI(TAG, "poll cadence restored from NVS: poll=%d flowing=%d idle=%d",
+                 p_ms, f_ms, i_ms);
+    } else {
+        ESP_LOGI(TAG, "no cached poll cadence — using firmware defaults");
+    }
 
     const bool static_ip = nvs_config_uses_static_ip(&s_cfg);
     if (static_ip) {

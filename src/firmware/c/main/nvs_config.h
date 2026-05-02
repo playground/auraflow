@@ -76,4 +76,22 @@ bool nvs_config_save(const nvs_config_t *cfg);
 /** Erase the entire AuraFlow NVS namespace. */
 bool nvs_config_reset(void);
 
+/* ── Cached poll cadence ──────────────────────────────────────────
+ * The cadence is HomeHub-authoritative — every push response carries
+ * pollIntervalMs / flowingPollIntervalMs / idlePollIntervalMs and
+ * uplink applies them at runtime. We mirror those three values to NVS
+ * so that after a reboot we resume at the last-known cadence instead
+ * of falling back to firmware defaults until HomeHub responds again.
+ *
+ * Stored under separate keys (not the main config blob) because they
+ * change orders of magnitude more often. */
+
+/** Load cached cadence into the three out params. Returns true only
+ *  if all three keys are present — partial reads leave outs untouched. */
+bool nvs_config_poll_load(int *poll_ms, int *flowing_ms, int *idle_ms);
+
+/** Persist the cadence triple. Cheap; caller should compare-and-skip
+ *  to avoid rewriting unchanged values on every push. */
+bool nvs_config_poll_save(int poll_ms, int flowing_ms, int idle_ms);
+
 #endif  /* ESP_PLATFORM */
