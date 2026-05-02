@@ -29,6 +29,7 @@ All server-side code lives in HomeHub. AuraFlow is hardware + firmware + docs.
 | [`notifications.md`](./notifications.md) | Tiered alert strategy (push/email/SMS/voice) |
 | [`hardware.md`](./hardware.md) | BOM, wiring, sensor placement, Tuya valve notes |
 | [`subscription-model.md`](./subscription-model.md) | Deferred billing strategy and architecture |
+| [`ota-strategy.md`](./ota-strategy.md) | HomeHub container OTA: manual button → Watchtower → Mender, with a fleet-size decision rule |
 | [`roadmap.md`](./roadmap.md) | Phases, sequencing, ship order, MVP scope |
 | [`notes.txt`](./notes.txt) | Original design notes (source material — do not edit) |
 | [`waterflow.md`](./waterflow.md) | Original implementation summary (source material) |
