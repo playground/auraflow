@@ -13,6 +13,7 @@ idf_component_register(
         "uplink.c"
         "uplink_esp.c"
         "http_config_esp.c"
+        "captive_portal_esp.c"
         "ota_esp.c"
         "cJSON.c"        # vendored — ESP-IDF v6.0 dropped the bundled `json` component
     INCLUDE_DIRS "."

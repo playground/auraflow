@@ -37,9 +37,10 @@ All server-side code lives in HomeHub. AuraFlow is hardware + firmware + docs.
 ## Status
 
 - Planning complete.
-- ESP32 firmware: shipped through end-user provisioning, on-device HTTP
-  config (`/`, `/edit`, `/diag`, `/config`), OTA via `POST /ota`, NVS-cached
-  poll cadence, web flasher hosted on GitHub Pages. Hardware integration
-  (TUF-2000M wiring + valve) blocked on hardware procurement.
+- ESP32 firmware: shipped through end-user provisioning (web flasher +
+  captive portal), on-device HTTP config (`/`, `/edit`, `/diag`,
+  `/config`), OTA via `POST /ota`, NVS-cached poll cadence, web flasher
+  hosted on GitHub Pages. Hardware integration (TUF-2000M wiring +
+  valve) blocked on hardware procurement.
 - HomeHub side: leak engine + cadence dashboard widget + OTA management UI
   are next (see [`roadmap.md`](./roadmap.md) Phase 1).

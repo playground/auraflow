@@ -28,6 +28,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "captive_portal.h"
 #include "http_config.h"
 #include "modbus.h"
 #include "nvs_config.h"
@@ -36,7 +37,7 @@
 #include "uplink.h"
 #include "wifi_mgr.h"
 
-#define FIRMWARE_VERSION         "0.2.0-c"
+#define FIRMWARE_VERSION         "0.3.0-c"
 
 #define MODBUS_UART_NUM          UART_NUM_2
 #define MODBUS_UART_BAUD         9600
@@ -323,8 +324,14 @@ void app_main(void)
     }
 
     if (!nvs_config_is_provisioned(&s_cfg)) {
-        ESP_LOGW(TAG, "NVS not provisioned — listening on UART0 for PROVISION:{...}");
+        ESP_LOGW(TAG, "NVS not provisioned — opening UART + captive-portal surfaces");
+        /* Run both surfaces concurrently. The maker workflow goes through
+         * the UART listener; non-technical users join AuraFlow-Setup-XXXX
+         * from a phone and see the portal. Whichever lands a valid
+         * config first wins — both write the same NVS keys via the same
+         * validator and reboot, so there's no race to coordinate. */
         provisioning_start_listener();
+        captive_portal_start();
         return;
     }
 

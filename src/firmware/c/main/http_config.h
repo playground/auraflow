@@ -40,8 +40,15 @@ typedef struct {
     size_t pending_uploads;
 } http_config_status_t;
 
-/** Start the HTTP server. Idempotent — safe to call multiple times. */
+/** Start the HTTP server in STA mode (status + edit + diag + ota + config).
+ *  Idempotent — safe to call multiple times. */
 void http_config_start(const http_config_init_t *init);
+
+/** Start the HTTP server in captive-portal mode (mobile setup form +
+ *  Wi-Fi scan + same POST /config + catch-all that returns the form so
+ *  iOS/Android probes pop up the setup page). Used when unprovisioned;
+ *  called from captive_portal_start. */
+void http_config_start_portal(void);
 
 /** Update the snapshot displayed on GET /. Cheap, called from poll_task. */
 void http_config_update_status(const http_config_status_t *status);

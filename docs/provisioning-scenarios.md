@@ -10,7 +10,7 @@ lifetime. Three distinct lifecycles, served by the same firmware.
 |---|---|---|---|---|
 | 1 | Pre-provisioning via web flasher | Makers / dev | Browser → ESP Web Tools flash → WebSerial form → `PROVISION:{...}` over UART0 | ✓ shipped (commit `8a78097` + `b33ca14`); needs static-IP fields added |
 | 2 | Runtime tweaks via HomeHub dashboard | Anyone with dashboard access | Form on `/sensors/:id` → `PUT /api/sensors/:id/config` → next upload response delivers values back to firmware | ✓ shipped (commit `33dc97d` for polling cadence); pattern repeatable for more fields |
-| 3 | Captive portal for shipped hardware | Non-technical end users | Power on → ESP32 in SoftAP mode → user joins `AuraFlow-Setup-XXXX` from phone → DNS hijack pops a portal → fill form → save + restart | not yet built — planned |
+| 3 | Captive portal for shipped hardware | Non-technical end users | Power on → ESP32 in SoftAP mode → user joins `AuraFlow-Setup-XXXX` from phone → DNS hijack pops a portal → fill form → save + restart | ✓ shipped (firmware v0.3.0-c) |
 
 All three write the same NVS keys via the same validation code. The
 firmware doesn't care which surface populated them.
@@ -131,11 +131,16 @@ ESP32
 ESP32 (provisioned) — joins home Wi-Fi, posts to HomeHub
 ```
 
-**Not yet built.** Implementation plan is below.
+**Shipped in firmware v0.3.0-c.** AP comes up in `WIFI_MODE_APSTA`
+(STA enabled so the portal's `/scan` endpoint can list nearby
+networks), DNS hijack on UDP/53 answers everything with the AP IP,
+and the same `POST /config` handler used by the maker workflow
+validates + saves NVS + reboots. Source: `captive_portal_esp.c` plus
+the portal-mode entry point in `http_config_esp.c`.
 
-After provisioning, the same `esp_http_server` instance can stay alive
-on the device's STA-mode IP and serve a small read-only `/diag` plus
-read-write `/config` for post-provisioning changes (commit 3 below).
+After provisioning, the same `esp_http_server` instance stays alive on
+the device's STA-mode IP serving `/`, `/edit`, `/diag`, `/config`,
+`/ota` — already shipped (commit 3 below — done).
 
 ---
 
