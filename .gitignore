@@ -9,8 +9,9 @@ xs_*/
 .vscode/
 .idea/
 
-# Firmware binaries are built per-machine, not committed
-web/bin/*.bin
+# web/bin/*.bin IS tracked — those are the flasher's published payload,
+# refreshed by `npm run publish:flasher`. The raw build/ output below
+# stays untracked.
 
 # ESP-IDF (C firmware build artifacts under src/firmware/c/)
 src/firmware/c/build/

@@ -11,6 +11,7 @@
     "menuconfig:firmware":     "scripts/with-idf.sh idf.py -C src/firmware/c menuconfig",
     "provision":               "scripts/with-idf.sh python3 scripts/send-provision.py docs/.env",
     "ota:firmware":            "python3 scripts/ota.py",
+    "publish:flasher":         "scripts/publish-flasher.sh",
     "build:firmware:moddable": "cd src/firmware/ts && mcconfig -d -m -p esp32 LANGUAGE=es2024",
     "tsc":       "tsc",
     "tsc:check": "tsc --noEmit",
