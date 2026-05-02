@@ -19,3 +19,11 @@ CONFIG_FREERTOS_HZ=100
 #    provisioning protocol; these only affect driver defaults) ──
 CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=10
 CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=32
+
+# ── OTA ────────────────────────────────────────────────────────
+# Allow plain HTTP OTA URLs. Without this the esp_https_ota begin()
+# call rejects http://… with "No option for server verification is
+# enabled in esp_http_client config" / ESP_ERR_INVALID_ARG. Acceptable
+# for LAN-side updates (the maker-targeted scenario). HTTPS still
+# works when callers supply a cert_pem / crt_bundle.
+CONFIG_ESP_HTTPS_OTA_ALLOW_HTTP=y
