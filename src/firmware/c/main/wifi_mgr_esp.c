@@ -22,7 +22,13 @@ static const char *TAG = "wifi_mgr";
 
 static wifi_mgr_history_t        s_history;
 static int                        s_backoff_ms = WIFI_MGR_INITIAL_BACKOFF_MS;
-static const wifi_mgr_config_t   *s_cfg        = NULL;
+/* Copy of the caller's config — copied by value so we don't dangle on
+ * the caller's stack-local wifi_mgr_config_t after wifi_mgr_start returns.
+ * The const char* fields inside still point into the caller's storage,
+ * which must outlive wifi_mgr (typically file-scope static, e.g. main.c's
+ * s_cfg holds the underlying wifi_ssid/password/static_ip strings). */
+static wifi_mgr_config_t          s_cfg = { 0 };
+static bool                       s_started = false;
 static TimerHandle_t              s_reconnect_timer = NULL;
 
 static int64_t now_ms(void)
@@ -79,7 +85,7 @@ static void event_handler(void *arg, esp_event_base_t base,
                 break;
             case WIFI_EVENT_STA_DISCONNECTED:
                 ESP_LOGW(TAG, "disconnected");
-                if (s_cfg && s_cfg->on_down) s_cfg->on_down();
+                if (s_started && s_cfg.on_down) s_cfg.on_down();
                 {
                     int delay = s_backoff_ms;
                     s_backoff_ms = wifi_mgr_next_backoff_ms(s_backoff_ms);
@@ -93,7 +99,7 @@ static void event_handler(void *arg, esp_event_base_t base,
         ESP_LOGI(TAG, "got IP");
         wifi_mgr_history_record(&s_history, now_ms());
         s_backoff_ms = WIFI_MGR_INITIAL_BACKOFF_MS;
-        if (s_cfg && s_cfg->on_up) s_cfg->on_up();
+        if (s_started && s_cfg.on_up) s_cfg.on_up();
     }
 }
 
@@ -144,7 +150,12 @@ void wifi_mgr_start(const wifi_mgr_config_t *cfg)
         return;
     }
 
-    s_cfg = cfg;
+    /* Copy by value — caller's wifi_mgr_config_t may be on the stack
+     * (e.g. app_main returns before our event callbacks fire). String
+     * pointers within still reference caller storage which must outlive
+     * us; in practice that's main.c's file-scope static nvs_config_t. */
+    s_cfg = *cfg;
+    s_started = true;
     wifi_mgr_history_init(&s_history);
     s_backoff_ms = WIFI_MGR_INITIAL_BACKOFF_MS;
 
@@ -152,8 +163,8 @@ void wifi_mgr_start(const wifi_mgr_config_t *cfg)
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
 
-    if (has_static_ip(cfg) && sta_netif != NULL) {
-        apply_static_ip(sta_netif, cfg);
+    if (has_static_ip(&s_cfg) && sta_netif != NULL) {
+        apply_static_ip(sta_netif, &s_cfg);
     }
 
     wifi_init_config_t wcfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -165,9 +176,9 @@ void wifi_mgr_start(const wifi_mgr_config_t *cfg)
                                                &event_handler, NULL));
 
     wifi_config_t sta_cfg = { 0 };
-    strncpy((char *)sta_cfg.sta.ssid, cfg->ssid, sizeof(sta_cfg.sta.ssid) - 1);
-    if (cfg->password != NULL) {
-        strncpy((char *)sta_cfg.sta.password, cfg->password,
+    strncpy((char *)sta_cfg.sta.ssid, s_cfg.ssid, sizeof(sta_cfg.sta.ssid) - 1);
+    if (s_cfg.password != NULL) {
+        strncpy((char *)sta_cfg.sta.password, s_cfg.password,
                 sizeof(sta_cfg.sta.password) - 1);
     }
 

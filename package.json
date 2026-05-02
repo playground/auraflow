@@ -9,6 +9,7 @@
     "flash:firmware:nostub":   "scripts/with-idf.sh sh -c 'python -m esptool --chip esp32 --port /dev/cu.usbserial-0001 --baud 115200 --before default-reset --after hard-reset --no-stub write-flash --flash-mode dio --flash-size 4MB --flash-freq 40m 0x1000 src/firmware/c/build/bootloader/bootloader.bin 0x8000 src/firmware/c/build/partition_table/partition-table.bin 0xf000 src/firmware/c/build/ota_data_initial.bin 0x20000 src/firmware/c/build/auraflow.bin' && npm run monitor:firmware",
     "monitor:firmware":        "scripts/with-idf.sh idf.py -C src/firmware/c monitor",
     "menuconfig:firmware":     "scripts/with-idf.sh idf.py -C src/firmware/c menuconfig",
+    "provision":               "scripts/with-idf.sh python3 scripts/send-provision.py docs/.env",
     "build:firmware:moddable": "cd src/firmware/ts && mcconfig -d -m -p esp32 LANGUAGE=es2024",
     "tsc":       "tsc",
     "tsc:check": "tsc --noEmit",
