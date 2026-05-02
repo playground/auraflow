@@ -3,131 +3,159 @@
 Local-first water-flow leak detection. ESP32 + TUF-2000M ultrasonic flow
 meter, talks to a [HomeHub](../homehub) backend over LAN.
 
-This repo contains the **ESP32 firmware (Moddable JS)** and hardware/build
-docs. All server-side code (ingestion, leak engine, alerts, dashboard) lives
-in `homehub`.
+This repo contains the **ESP32 firmware (ESP-IDF C)** and hardware/build
+docs. All server-side code (ingestion, leak engine, alerts, dashboard)
+lives in `homehub`.
 
 ```
-┌──────────────┐   RS485    ┌──────────────┐  HTTP    ┌──────────────┐
+┌──────────────┐   RS485    ┌──────────────┐   HTTP   ┌──────────────┐
 │  TUF-2000M   │ ◄────────► │   ESP32      │ ───────► │   HomeHub    │
-│  ultrasonic  │  Modbus    │ (Moddable JS)│  POST    │   backend    │
+│  ultrasonic  │  Modbus    │  (ESP-IDF C) │  POST    │   backend    │
 └──────────────┘            └──────────────┘          └──────────────┘
 ```
 
 See [`docs/`](./docs) for the full design (architecture, schema,
 notifications, hardware, subscription model, roadmap).
 
+## Firmware language
+
+The active firmware is **native C on ESP-IDF v6.0** under `src/firmware/c/`.
+We started in Moddable TypeScript; ESP-IDF v6.0's newlib changes broke
+`__FILE` / `_REENT` in xtensa-esp-elf, so we ported. The TS code is kept
+in `src/firmware/ts/` as an executable spec — handy for understanding
+intent — but is not built or flashed.
+
 ## Repo layout
 
 ```
 auraflow/
-├── docs/                   ← design + plan documents
-├── src/firmware/           ← ESP32 firmware modules (TypeScript)
-│   ├── modbus.ts           ← Modbus RTU framing + CRC16  (pure)
-│   ├── modbus.test.ts
-│   ├── tuf2000m.ts         ← TUF-2000M parsers + register defs (pure)
-│   ├── tuf2000m.test.ts
-│   ├── ring-buffer.ts      ← FIFO bounded buffer (pure)
-│   ├── ring-buffer.test.ts
-│   ├── uplink.ts           ← HTTP uplink to HomeHub + offline buffering
-│   ├── nvs.ts              ← Moddable Preference wrapper for config
-│   ├── wifi.ts             ← Wi-Fi connect + auto-reconnect + anti-flap
-│   ├── main.ts             ← orchestrator (boot, poll loop)
-│   └── moddable.d.ts       ← ambient types for Moddable APIs
-├── manifest.json           ← Moddable build manifest
-├── tsconfig.json           ← TypeScript config (pure modules Node-testable)
+├── docs/                       ← design + plan documents
+├── src/firmware/c/             ← active firmware (ESP-IDF v6.0)
+│   ├── main/
+│   │   ├── main.c              ← orchestrator (boot, poll task)
+│   │   ├── modbus.c            ← Modbus RTU framing + CRC16  (pure)
+│   │   ├── tuf2000m.c          ← TUF-2000M parsers + register defs (pure)
+│   │   ├── ring_buffer.c       ← FIFO bounded buffer (pure)
+│   │   ├── nvs_config.c        ← config struct, helpers (pure)
+│   │   ├── nvs_config_esp.c    ← NVS I/O
+│   │   ├── provisioning.c      ← PROVISION:{json} parser + validator (pure)
+│   │   ├── provisioning_esp.c  ← UART listener
+│   │   ├── wifi_mgr.c          ← anti-flap + backoff math (pure)
+│   │   ├── wifi_mgr_esp.c      ← Wi-Fi state machine, static IP
+│   │   ├── uplink.c            ← payload serializer + poll-config (pure)
+│   │   ├── uplink_esp.c        ← HTTP push, ring-buffer flush
+│   │   ├── http_config.h       ← /, /edit, /diag, /config, /ota
+│   │   ├── http_config_esp.c
+│   │   ├── ota.h               ← background OTA via esp_https_ota
+│   │   ├── ota_esp.c
+│   │   └── cJSON.{h,c}         ← vendored — v6.0 dropped bundled `json`
+│   ├── partitions.csv          ← OTA-capable layout (ota_0/ota_1/otadata)
+│   └── sdkconfig.defaults
+├── src/firmware/ts/            ← original Moddable TS (executable spec, not built)
+├── web/                        ← browser-based flasher (ESP Web Tools + WebSerial)
+│   ├── index.html              ← maker / end-user landing page
+│   ├── manifest.json           ← chip + parts/offsets for ESP Web Tools
+│   ├── bin/                    ← published .bin files (committed)
+│   └── .nojekyll
+├── scripts/
+│   ├── with-idf.sh             ← sources ESP-IDF env so npm scripts work in fresh shells
+│   ├── send-provision.py       ← serial sender for PROVISION:{json}
+│   ├── ota.py                  ← serves the .bin and POSTs the URL to /ota
+│   └── publish-flasher.sh      ← copies build output → web/bin/, syncs manifest version
 └── package.json
 ```
 
-## Tests (pure logic — no hardware needed)
+## Building & flashing
+
+Requires the ESP-IDF v6.0 toolchain at `$IDF_PATH` (typical:
+`$HOME/sandbox/esp32/esp-idf`). `scripts/with-idf.sh` sources the env on
+demand so the npm scripts work in a fresh shell.
 
 ```bash
-npm install
-npm test
+npm run build:firmware                 # idf.py build
+npm run flash:firmware                 # build + flash + monitor over USB
+npm run monitor:firmware               # serial monitor (Ctrl-] to quit)
+npm run ota:firmware -- <device-ip>    # serve .bin locally, trigger OTA via POST /ota
 ```
 
-Covers Modbus framing/CRC, TUF-2000M float decoding for both ABCD and CDAB
-word orders, and the offline ring buffer. The Moddable I/O modules
-(`nvs`, `wifi`, `main`, `uplink` HTTP path) require Moddable + ESP32 to
-exercise.
+First flash on a fresh board needs USB. Once provisioned and on Wi-Fi,
+all future updates can go OTA.
 
-## Building the firmware
-
-Prereqs:
-
-1. Install the [Moddable SDK](https://github.com/Moddable-OpenSource/moddable)
-   per their macOS / Linux instructions.
-2. `export MODDABLE=/path/to/moddable` and source their setup.
-
-Build + flash to a connected ESP32:
+## Tests
 
 ```bash
-npm run build:firmware            # debug build
-npm run build:firmware:release    # release build
+npm run test:c     # host-side C tests (Modbus framing, CRC, TUF parsers,
+                   # ring buffer, uplink poll-config defaults)
 ```
 
-## Browser-based flashing (web flasher)
+Pure modules (`*.c` without the `_esp` suffix) are testable on the host;
+ESP-IDF I/O modules need the device to exercise.
 
-Once binaries have been built once with `mcconfig`, anyone can re-flash
-an ESP32 from Chrome/Edge without installing the Moddable SDK. See
-[`web/README.md`](./web/README.md) for hosting and binary distribution.
+## Web flasher
+
+Browser-based flash for end users — no toolchain install. Hosted via
+GitHub Pages on this repo (Source: GitHub Actions, deployed by
+`.github/workflows/pages.yml`).
 
 ```bash
-cd web && python3 -m http.server 8080
-# open http://localhost:8080 in Chrome
+# Local dev
+cd web && python3 -m http.server 8080  # open in Chrome/Edge
+
+# Publish a new release
+npm run build:firmware
+npm run publish:flasher                # copies bins + syncs manifest version
+git add web/bin web/manifest.json && git commit -m "release: flasher v..."
+git push                               # workflow re-deploys Pages
 ```
 
-## Provisioning a new sensor
+End-user flow: open the published URL in Chrome/Edge → plug ESP32 → click
+**Connect & Flash** → fill the on-page form → device reboots into
+operation.
 
-Until the Phase 5 web flasher ships, provision via the Moddable serial REPL
-after flashing:
+## Provisioning
 
-```js
-import Preference from 'preference';
-const D = 'auraflow';
-Preference.set(D, 'wifiSsid',       'YourSSID');
-Preference.set(D, 'wifiPassword',   'YourPassword');
-Preference.set(D, 'homehubUrl',     'http://192.168.1.10:3000');
-Preference.set(D, 'internalApiKey', 'YOUR_INTERNAL_API_KEY');
-Preference.set(D, 'sensorId',       'auraflow-mainline-01');
-Preference.set(D, 'wordOrder',      'low-word-first');   // CDAB; flip if values look wrong
-```
+Three paths, in order of preference:
 
-Then create the sensor in HomeHub:
+1. **Web flasher form** (recommended): the same page that flashes also has
+   a "Connect & Provision" form. Sends `PROVISION:{json}` over UART0
+   after the device's `READY:auraflow-provision-v1` heartbeat.
+2. **CLI**: `npm run provision` — reads `docs/.env` (gitignored) and
+   sends the same line over serial.
+3. **On-device after first boot**: hit `http://<device-ip>/edit` to change
+   any field. Saves to NVS and reboots.
 
-```bash
-curl -X POST http://192.168.1.10:3000/api/sensors \
-  -H "Authorization: Bearer <admin-jwt>" \
-  -H "Content-Type: application/json" \
-  -d '{"sensorId":"auraflow-mainline-01","alias":"Main line","type":"flow"}'
-```
+Required fields: `wifiSsid`, `wifiPassword`, `homehubUrl`,
+`internalApiKey`, `sensorId`, `wordOrder` (default `low-word-first` —
+CDAB, matches most TUF-2000M units). Optional: `staticIp` /
+`staticGateway` / `staticNetmask` (all three or none).
 
-Power-cycle the ESP32. It'll connect to Wi-Fi, open serial, and begin
-polling the TUF-2000M.
+## On-device endpoints
+
+Once provisioned and online, the device runs an HTTP server on port 80:
+
+| Method | Path     | Purpose |
+|--------|----------|---------|
+| GET    | /        | HTML status page (auto-refresh 5s) |
+| GET    | /edit    | Config form preloaded from NVS |
+| GET    | /diag    | JSON status (scriptable) |
+| POST   | /config  | Partial JSON merge → save → reboot |
+| POST   | /ota     | `{"url":"..."}` — fetch + apply firmware |
 
 ## Verifying the float word order
 
-Read a known flow rate (open a faucet at a measured rate or fill a
-calibrated bucket). If the value comes back NaN, denormal, or wildly off,
-flip `wordOrder` in NVS:
+If your first reading is NaN, denormal, or wildly off, flip the word
+order. Either via `/edit` (Modbus word order dropdown), or by
+re-provisioning with `wordOrder: "high-word-first"`. The TUF-2000M's M88
+setting tells you which the unit is using.
 
-```js
-Preference.set('auraflow', 'wordOrder', 'high-word-first');   // ABCD
+## Useful monitor keys
+
 ```
-
-Reset and re-test.
-
-## Useful keys
-Ctrl+] (Ctrl + right square bracket).                            
-                                                                 
-  The header line at the top of the monitor session shows it:      
-  --- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
-                                                                   
-  Other useful shortcuts in the same monitor:                      
-  - Ctrl+T R — reboot the chip                                     
-  - Ctrl+T A — toggle showing addresses for log lines              
-  - Ctrl+T H — full help menu                                      
-  - Ctrl+C — does NOT quit (just sends a signal); use Ctrl+]
+Ctrl+]      Quit the monitor
+Ctrl+T R    Reboot the chip
+Ctrl+T A    Toggle log addresses
+Ctrl+T H    Full help menu
+```
 
 ## License
 
