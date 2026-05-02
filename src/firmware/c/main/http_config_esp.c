@@ -25,6 +25,7 @@
 
 #include "http_config.h"
 #include "nvs_config.h"
+#include "ota.h"
 #include "provisioning.h"
 
 static const char *TAG = "http_config";
@@ -376,6 +377,63 @@ static esp_err_t handle_post_config(httpd_req_t *req)
     return ESP_OK;
 }
 
+/* ── POST /ota — kick off OTA from a URL ──────────────────────── */
+
+static esp_err_t handle_post_ota(httpd_req_t *req)
+{
+    if (ota_in_progress()) {
+        httpd_resp_set_status(req, "409 Conflict");
+        return send_error(req, 409, "ota already in progress", NULL);
+    }
+    if (req->content_len > 1024) {
+        return send_error(req, 400, "request body too large", NULL);
+    }
+
+    char body[1024];
+    int total = 0;
+    while (total < req->content_len && total < (int)sizeof(body) - 1) {
+        int chunk = httpd_req_recv(req, body + total, sizeof(body) - 1 - total);
+        if (chunk <= 0) {
+            if (chunk == HTTPD_SOCK_ERR_TIMEOUT) continue;
+            return send_error(req, 400, "failed to read body", NULL);
+        }
+        total += chunk;
+    }
+    body[total] = '\0';
+
+    cJSON *root = cJSON_Parse(body);
+    if (root == NULL || !cJSON_IsObject(root)) {
+        if (root != NULL) cJSON_Delete(root);
+        return send_error(req, 400, "invalid JSON", NULL);
+    }
+
+    cJSON *url_item = cJSON_GetObjectItem(root, "url");
+    if (!cJSON_IsString(url_item) || url_item->valuestring == NULL
+        || url_item->valuestring[0] == '\0') {
+        cJSON_Delete(root);
+        return send_error(req, 400, "url is required", "url");
+    }
+
+    /* Reject obviously bogus schemes; esp_https_ota will catch the rest. */
+    const char *url = url_item->valuestring;
+    if (strncmp(url, "http://", 7) != 0 && strncmp(url, "https://", 8) != 0) {
+        cJSON_Delete(root);
+        return send_error(req, 400, "url must be http:// or https://", "url");
+    }
+
+    ota_start(url);
+    cJSON_Delete(root);
+
+    cJSON *resp = cJSON_CreateObject();
+    if (resp != NULL) {
+        cJSON_AddBoolToObject(resp, "started", true);
+        cJSON_AddStringToObject(resp, "message", "OTA started — watch logs; device will reboot on success.");
+        send_json(req, resp);
+        cJSON_Delete(resp);
+    }
+    return ESP_OK;
+}
+
 /* ── Public API ────────────────────────────────────────────────── */
 
 void http_config_start(const http_config_init_t *init)
@@ -402,6 +460,7 @@ void http_config_start(const http_config_init_t *init)
         { .uri = "/edit",   .method = HTTP_GET,  .handler = handle_get_edit,   .user_ctx = NULL },
         { .uri = "/diag",   .method = HTTP_GET,  .handler = handle_get_diag,   .user_ctx = NULL },
         { .uri = "/config", .method = HTTP_POST, .handler = handle_post_config,.user_ctx = NULL },
+        { .uri = "/ota",    .method = HTTP_POST, .handler = handle_post_ota,   .user_ctx = NULL },
     };
     for (size_t i = 0; i < sizeof(routes) / sizeof(routes[0]); i++) {
         httpd_register_uri_handler(s_server, &routes[i]);
