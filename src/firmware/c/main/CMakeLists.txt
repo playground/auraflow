@@ -12,6 +12,7 @@ idf_component_register(
         "wifi_mgr_esp.c"
         "uplink.c"
         "uplink_esp.c"
+        "http_config_esp.c"
         "cJSON.c"        # vendored — ESP-IDF v6.0 dropped the bundled `json` component
     INCLUDE_DIRS "."
     REQUIRES
@@ -22,6 +23,7 @@ idf_component_register(
         esp_event
         esp_timer
         esp_http_client  # POST readings to HomeHub
+        esp_http_server  # on-device status page at GET /
 )
 # Common components (freertos, log, esp_system, etc.) are auto-included by
 # ESP-IDF on top of REQUIRES.

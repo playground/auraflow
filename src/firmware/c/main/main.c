@@ -28,6 +28,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "http_config.h"
 #include "modbus.h"
 #include "nvs_config.h"
 #include "provisioning.h"
@@ -232,6 +233,18 @@ static void poll_task(void *arg)
                  (unsigned)uplink_pending(&s_uplink),
                  s_current_poll_ms);
 
+        /* Push a snapshot to the on-device status page. */
+        const http_config_status_t hstatus = {
+            .has_rate           = true,
+            .rate_m3h           = reading.rate_m3h,
+            .has_signal_quality = reading.has_signal_quality,
+            .signal_quality     = reading.signal_quality,
+            .has_rssi           = reading.has_rssi,
+            .rssi               = reading.rssi,
+            .pending_uploads    = uplink_pending(&s_uplink),
+        };
+        http_config_update_status(&hstatus);
+
         vTaskDelay(pdMS_TO_TICKS(s_current_poll_ms));
     }
 }
@@ -243,6 +256,15 @@ static volatile bool s_poll_started = false;
 static void on_wifi_up(void)
 {
     ESP_LOGI(TAG, "Wi-Fi up");
+
+    /* Start the on-device status page once we have an IP. Idempotent — safe
+     * to be called again on reconnect. */
+    http_config_init_t hcfg = { 0 };
+    strncpy(hcfg.sensor_id,        s_cfg.sensor_id,        sizeof(hcfg.sensor_id) - 1);
+    strncpy(hcfg.homehub_url,      s_cfg.homehub_url,      sizeof(hcfg.homehub_url) - 1);
+    strncpy(hcfg.firmware_version, FIRMWARE_VERSION,       sizeof(hcfg.firmware_version) - 1);
+    http_config_start(&hcfg);
+
     if (!s_poll_started) {
         xTaskCreate(poll_task, "auraflow_poll", 6144, NULL, 5, NULL);
         s_poll_started = true;
