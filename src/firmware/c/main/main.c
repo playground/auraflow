@@ -36,7 +36,7 @@
 #include "uplink.h"
 #include "wifi_mgr.h"
 
-#define FIRMWARE_VERSION         "0.1.0-c"
+#define FIRMWARE_VERSION         "0.2.0-c"
 
 #define MODBUS_UART_NUM          UART_NUM_2
 #define MODBUS_UART_BAUD         9600
