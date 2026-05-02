@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img"
+     aria-label="AuraFlow">
+  <!-- Aura: two concentric sensor rings, fading outward -->
+  <circle cx="32" cy="34" r="28" fill="none" stroke="#3b82f6"
+          stroke-width="1.5" opacity="0.18"/>
+  <circle cx="32" cy="34" r="22" fill="none" stroke="#3b82f6"
+          stroke-width="1.5" opacity="0.32"/>
+
+  <!-- Water drop -->
+  <path d="M32 8
+           C 32 8, 16 26, 16 38
+           a 16 16 0 0 0 32 0
+           C 48 26, 32 8, 32 8 Z"
+        fill="#3b82f6"/>
+
+  <!-- Highlight on the drop, hints at motion / fluidity -->
+  <ellipse cx="26" cy="34" rx="3.5" ry="5" fill="#bfdbfe" opacity="0.6"/>
+</svg>

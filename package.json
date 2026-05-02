@@ -12,6 +12,7 @@
     "provision":               "scripts/with-idf.sh python3 scripts/send-provision.py docs/.env",
     "ota:firmware":            "python3 scripts/ota.py",
     "publish:flasher":         "scripts/publish-flasher.sh",
+    "build:icons":             "scripts/build-icons.sh",
     "tsc":       "tsc",
     "tsc:check": "tsc --noEmit",
     "test":      "tsc && node --test 'dist/**/*.test.js'",
