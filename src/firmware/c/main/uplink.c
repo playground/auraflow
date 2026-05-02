@@ -83,6 +83,12 @@ int uplink_build_request_json(char *buf, size_t buf_size,
         if (!append(buf, buf_size, &len, ",\"bootReason\":\"%s\"", reading->boot_reason))
             return -1;
     }
+    /* Always emitted — server uses it to decide whether to insert into
+     * flow_readings or treat the POST as a diagnostic-only heartbeat. */
+    if (!append(buf, buf_size, &len, ",\"meterReachable\":%s",
+                reading->meter_reachable ? "true" : "false")) {
+        return -1;
+    }
 
     if (!append(buf, buf_size, &len, "}")) return -1;
     return len;

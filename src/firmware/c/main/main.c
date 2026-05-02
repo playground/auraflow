@@ -183,25 +183,34 @@ static void poll_task(void *arg)
     while (1) {
         uplink_reading_t reading = { 0 };
 
-        /* Required: rate. */
-        if (!read_flow_rate(&reading.rate_m3h)) {
-            ESP_LOGW(TAG, "flow rate read failed; skipping push");
-            vTaskDelay(pdMS_TO_TICKS(s_current_poll_ms));
-            continue;
+        /* Try to read flow rate. On failure we still push — with rate=0
+         * and meter_reachable=false — so HomeHub sees the device is
+         * alive (last_seen, RSSI, fw version, source IP refresh) and
+         * the OTA dispatch path stays unblocked even before the
+         * TUF-2000M is wired. The server-side route skips the
+         * flow_readings INSERT and the leak engine when the flag is
+         * false; nothing else changes. */
+        const bool meter_ok = read_flow_rate(&reading.rate_m3h);
+        if (!meter_ok) {
+            reading.rate_m3h = 0.0f;
+            ESP_LOGW(TAG, "flow rate read failed; pushing diagnostic heartbeat");
         }
+        reading.meter_reachable = meter_ok;
 
-        /* Optional: totalizer. */
-        float t;
-        if (read_totalizer(&t)) {
-            reading.has_total_m3 = true;
-            reading.total_m3     = t;
-        }
+        /* Optional: totalizer + signal quality — only meaningful when
+         * the meter answered. Skip the reads if it didn't. */
+        if (meter_ok) {
+            float t;
+            if (read_totalizer(&t)) {
+                reading.has_total_m3 = true;
+                reading.total_m3     = t;
+            }
 
-        /* Optional: signal quality. */
-        int sq;
-        if (read_signal_quality(&sq)) {
-            reading.has_signal_quality = true;
-            reading.signal_quality     = sq;
+            int sq;
+            if (read_signal_quality(&sq)) {
+                reading.has_signal_quality = true;
+                reading.signal_quality     = sq;
+            }
         }
 
         /* Diagnostics — cheap to include and surface real issues quickly. */

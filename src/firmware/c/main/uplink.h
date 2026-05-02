@@ -60,6 +60,12 @@ typedef struct {
     bool     has_uptime_sec;
     int64_t  uptime_sec;
 
+    /* False when the Modbus read of the meter failed (e.g. meter not yet
+     * wired, RS485 fault, sensor offline). Set rate_m3h = 0 in that case
+     * — server skips the readings INSERT and the leak engine, but still
+     * refreshes diagnostics so we see the device is alive and OTA-able. */
+    bool     meter_reachable;
+
     char     firmware_version[16];        /* empty → omit */
     char     mac[18];                     /* empty → omit */
     char     boot_reason[16];             /* empty → omit; "power"/"software"/"watchdog"/"unknown" */

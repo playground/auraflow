@@ -41,6 +41,8 @@ static void test_minimal_body_has_required_fields(void)
     ASSERT_TRUE(strstr(buf, "\"sensorId\":\"auraflow-mainline-01\"") != NULL);
     ASSERT_TRUE(strstr(buf, "\"rateM3h\":0.42")                     != NULL);
     ASSERT_TRUE(strstr(buf, "\"tOffsetMs\":0")                      != NULL);
+    /* meterReachable is always emitted; defaults to false on a zeroed struct. */
+    ASSERT_TRUE(strstr(buf, "\"meterReachable\":false")             != NULL);
     /* Optional fields absent. */
     ASSERT_TRUE(strstr(buf, "totalM3")           == NULL);
     ASSERT_TRUE(strstr(buf, "signalQuality")     == NULL);
@@ -51,6 +53,21 @@ static void test_minimal_body_has_required_fields(void)
     ASSERT_TRUE(strstr(buf, "bootReason")        == NULL);
     /* Ends with closing brace. */
     ASSERT_EQ(buf[n - 1], '}');
+}
+
+static void test_meter_reachable_true_when_set(void)
+{
+    uplink_config_t  cfg;
+    uplink_reading_t r;
+    char buf[512];
+    make_cfg(&cfg);
+    make_minimal_reading(&r);
+    r.meter_reachable = true;
+
+    int n = uplink_build_request_json(buf, sizeof(buf), &cfg, &r, 1000);
+    ASSERT_TRUE(n > 0);
+    ASSERT_TRUE(strstr(buf, "\"meterReachable\":true")  != NULL);
+    ASSERT_TRUE(strstr(buf, "\"meterReachable\":false") == NULL);
 }
 
 /* ── tOffsetMs ────────────────────────────────────────────────── */
@@ -248,6 +265,7 @@ static void test_pending_null_safe(void)
 int main(void)
 {
     RUN(test_minimal_body_has_required_fields);
+    RUN(test_meter_reachable_true_when_set);
     RUN(test_t_offset_is_difference);
     RUN(test_t_offset_clamps_to_zero_when_negative);
     RUN(test_optional_total_m3_included);
